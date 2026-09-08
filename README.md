@@ -4,6 +4,7 @@
 
 | Skill | 用途 |
 | --- | --- |
+| [codex-downgrade](skills/codex-downgrade/SKILL.md) | 检查 Codex App / CLI 的模型路由与降级情况，支持离线会话检查和在线探测。 |
 | [issue-brief](skills/issue-brief/SKILL.md) | 选择适合贡献经验的 issue，尝试复现，解释场景、正常流程、根因和修复方向。 |
 | [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | 按个人工程偏好审查 TypeScript 生态代码，或在明确要求时保持行为不变地简化代码。 |
 
@@ -29,7 +30,7 @@ npx skills@latest add zhsama/skills --global --agent codex
 npx skills@latest add zhsama/skills --skill issue-brief --global --agent codex
 ```
 
-安装两个：
+安装全部：
 
 ```sh
 npx skills@latest add zhsama/skills --skill '*' --global --agent codex
@@ -44,6 +45,7 @@ npx skills@latest add zhsama/skills --skill '*' --global --agent codex
 在 Codex 中输入：
 
 ```text
+$codex-downgrade 检查当前任务是否有模型降级证据
 $issue-brief
 $issue-brief https://github.com/owner/repo/issues/123
 $ludwig-personal-code-review-preferences 审查当前修改
@@ -51,10 +53,12 @@ $ludwig-personal-code-review-preferences 审查当前修改
 
 `issue-brief` 默认止于问题分析和修复建议，需要可用的 GitHub 访问能力。审查 skill 根据任务使用代码、项目工具链和官方资料。安装这些指令不会配置 GitHub 凭证、MCP 服务或项目依赖。
 
+`codex-downgrade` 需要 Python 3.11+，无第三方运行依赖。默认检查本地会话记录，按需使用本地 ChatGPT 登录凭据进行在线探测。
+
 ## 更新
 
 ```sh
-npx skills@latest update issue-brief ludwig-personal-code-review-preferences
+npx skills@latest update codex-downgrade issue-brief ludwig-personal-code-review-preferences
 ```
 
 ## 维护与验证
@@ -64,6 +68,7 @@ npx skills@latest update issue-brief ludwig-personal-code-review-preferences
 使用 Agent Skills 参考校验器：
 
 ```sh
+uvx --from skills-ref==0.1.1 agentskills validate skills/codex-downgrade
 uvx --from skills-ref==0.1.1 agentskills validate skills/issue-brief
 uvx --from skills-ref==0.1.1 agentskills validate skills/ludwig-personal-code-review-preferences
 ```

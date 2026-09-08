@@ -22,3 +22,7 @@ jobs:
           for skill in skills/*/; do
             agentskills validate "$skill"
           done
+      - name: Check detector CLI
+        run: |
+          python skills/codex-downgrade/scripts/codex_downgrade.py session --help
+          python skills/codex-downgrade/scripts/codex_downgrade.py official --help
