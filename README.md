@@ -6,6 +6,7 @@
 | --- | --- |
 | [codex-downgrade](skills/codex-downgrade/SKILL.md) | 检查 Codex App / CLI 的模型路由与降级情况，支持离线会话检查和在线探测。 |
 | [issue-brief](skills/issue-brief/SKILL.md) | 选择适合贡献经验的 issue，尝试复现，解释场景、正常流程、根因和修复方向。 |
+| [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 按 prompt 指定的数量和任务创建 Luna Max 子代理，由主 agent 协调与汇总。 |
 | [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | 按个人工程偏好审查 TypeScript 生态代码，或在明确要求时保持行为不变地简化代码。 |
 
 ## 安装
@@ -48,6 +49,7 @@ npx skills@latest add zhsama/skills --skill '*' --global --agent codex
 $codex-downgrade 检查当前任务是否有模型降级证据
 $issue-brief
 $issue-brief https://github.com/owner/repo/issues/123
+$luna-max-subagents 创建 2 个子代理，分别检查 API 和测试，最后汇总结果
 $ludwig-personal-code-review-preferences 审查当前修改
 ```
 
@@ -58,7 +60,7 @@ $ludwig-personal-code-review-preferences 审查当前修改
 ## 更新
 
 ```sh
-npx skills@latest update codex-downgrade issue-brief ludwig-personal-code-review-preferences
+npx skills@latest update codex-downgrade issue-brief luna-max-subagents ludwig-personal-code-review-preferences
 ```
 
 ## 维护与验证
@@ -70,6 +72,7 @@ npx skills@latest update codex-downgrade issue-brief ludwig-personal-code-review
 ```sh
 uvx --from skills-ref==0.1.1 agentskills validate skills/codex-downgrade
 uvx --from skills-ref==0.1.1 agentskills validate skills/issue-brief
+uvx --from skills-ref==0.1.1 agentskills validate skills/luna-max-subagents
 uvx --from skills-ref==0.1.1 agentskills validate skills/ludwig-personal-code-review-preferences
 ```
 
