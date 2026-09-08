@@ -4,6 +4,7 @@
 
 | Skill | 用途 |
 | --- | --- |
+| [ablation-experiment](skills/ablation-experiment/SKILL.md) | 主 agent 准备实验设计和 Luna 分工，用户确认后执行消融，由主 agent 核对原始证据。 |
 | [codex-downgrade](skills/codex-downgrade/SKILL.md) | 检查 Codex App / CLI 的模型路由与降级情况，支持离线会话检查和在线探测。 |
 | [issue-brief](skills/issue-brief/SKILL.md) | 选择适合贡献经验的 issue，尝试复现，解释场景、正常流程、根因和修复方向。 |
 | [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 按 prompt 指定的数量和任务创建 Luna Max 子代理，由主 agent 协调与汇总。 |
@@ -46,6 +47,7 @@ npx skills@latest add zhsama/skills --skill '*' --global --agent codex
 在 Codex 中输入：
 
 ```text
+$ablation-experiment 为当前改动准备实验设计和 Luna 子代理方案，先交给我确认
 $codex-downgrade 检查当前任务是否有模型降级证据
 $issue-brief
 $issue-brief https://github.com/owner/repo/issues/123
@@ -57,10 +59,16 @@ $ludwig-personal-code-review-preferences 审查当前修改
 
 `codex-downgrade` 需要 Python 3.11+，无第三方运行依赖。默认检查本地会话记录，按需使用本地 ChatGPT 登录凭据进行在线探测。
 
+`ablation-experiment` 可单独安装，无需安装 `luna-max-subagents`。主 agent 会先展示实验设计，以及子代理数量、分工、模型、权限和执行顺序；用户明确同意后才派发实验。执行环境须提供支持 `gpt-5.6-luna` 和 `max` 推理强度的子代理工具；缺少这些能力时会报告限制。每个实验须返回原始调用、变体 diff、日志和数据，由主 agent 验收。
+
+```sh
+npx skills@latest add zhsama/skills --skill ablation-experiment --global --agent codex
+```
+
 ## 更新
 
 ```sh
-npx skills@latest update codex-downgrade issue-brief luna-max-subagents ludwig-personal-code-review-preferences
+npx skills@latest update ablation-experiment codex-downgrade issue-brief luna-max-subagents ludwig-personal-code-review-preferences
 ```
 
 ## 维护与验证
@@ -70,6 +78,7 @@ npx skills@latest update codex-downgrade issue-brief luna-max-subagents ludwig-p
 使用 Agent Skills 参考校验器：
 
 ```sh
+uvx --from skills-ref==0.1.1 agentskills validate skills/ablation-experiment
 uvx --from skills-ref==0.1.1 agentskills validate skills/codex-downgrade
 uvx --from skills-ref==0.1.1 agentskills validate skills/issue-brief
 uvx --from skills-ref==0.1.1 agentskills validate skills/luna-max-subagents

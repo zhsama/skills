@@ -2,6 +2,8 @@
 
 This private repository contains skills created or customized for zhsama with assistance from Codex.
 
+- `ablation-experiment` was created from zhsama's requested ablation workflow: the main agent prepares the experiment design and subagent plan, obtains explicit approval before dispatch, delegates execution to `gpt-5.6-luna` with `max` reasoning effort, and verifies the original evidence. The skill is self-contained and includes no personal conversation transcripts or machine-specific paths.
+
 - `codex-downgrade` preserves the complete previously installed skill, including its instructions, Codex interface metadata, and detector script. The detector is byte-for-byte identical to the file supplied by zhsama on 2026-09-08. Its original author and upstream URL were not supplied. The companion ChatGPT browser userscript is not included.
 
 - `issue-brief` was created from zhsama's issue discovery, reproduction, learning, and contribution workflow. It is not an upstream project policy.
