@@ -1,4 +1,4 @@
 interface:
   display_name: "Issue Brief"
-  short_description: "挑选适合你的开源问题，复现并循序讲清场景、原理与修复方向"
-  default_prompt: "使用 $issue-brief，为我选择一个适合处理的 issue，尝试复现，并讲清使用场景、正常流程、错误原理和修复方向。"
+  short_description: "按最近发展区挑选进阶开源问题，明确成长点并复现、讲清原理与修复方向"
+  default_prompt: "使用 $issue-brief，依据我的近期贡献和交流选择一个聚焦单一主要能力提升的 issue，说明已有基础、新增挑战、所需支持和掌握标准，尝试复现并讲清问题与修复方向。"

@@ -1,15 +1,9 @@
 ---
 name: ludwig-personal-code-review-preferences
-description: >-
-  Review or behavior-preservingly simplify TypeScript ecosystem code, diffs,
-  PRs, plans, architecture, dependencies, performance, testing, and tooling
-  against Ludwig's engineering preferences. Use when the user requests a
-  quality review or wants correct code made cleaner, simpler, more reusable,
-  or easier to maintain. Advice is read-only; edit only on an explicit
-  simplify, clean-up, fix, or implementation request.
+description: "按 Ludwig 的工程偏好审查 TypeScript 生态的代码、diff、PR、方案、架构、依赖、性能、测试和工具链，或在明确要求时保持行为不变地简化。用于用户要求 review、simplify 或 clean-up 时。默认只读；只有明确要求简化、清理、修复或实现时才改代码。"
 ---
 
-# Ludwig Review and Simplify
+# Ludwig Review
 
 Review risks or simplify correct code against stable, cross-project TypeScript ecosystem preferences. Keep project history and repository-specific layouts out of this skill. Treat current user instructions, repository rules, exact installed versions, and verified runtime behavior as higher-priority facts.
 

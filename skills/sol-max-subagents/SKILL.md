@@ -1,15 +1,12 @@
 ---
 name: sol-max-subagents
-description: "由主 agent 按用户指定的数量和任务创建子代理，模型名称为 gpt-6.1-sol，思考强度（reasoning_effort）为 max，并协调与汇总结果。用于用户要求 GPT-6.1 Sol、max 子代理协作时。"
+description: "由主 agent 按用户 prompt 指定的数量和任务创建 gpt-6.1-sol、max 推理强度的 subagent，并协调与汇总结果。用于用户要求 Sol Max 子代理协作时。"
 compatibility: "Requires a subagent runtime supporting gpt-6.1-sol, max reasoning effort, and the documented dispatch and coordination parameters."
 ---
 
-# GPT-6.1 Sol · max 思考强度子代理
+# Sol Max Subagents
 
-主 agent 保持当前模型，负责理解任务、分配工作、整合和验证结果。子代理配置固定为：
-
-- 模型名称（`model`）：`gpt-6.1-sol`。
-- 思考强度（`reasoning_effort`）：`max`。
+主 agent 保持当前模型，负责理解任务、分配工作、整合和验证结果。子代理统一使用 `gpt-6.1-sol`，推理强度为 `max`。
 
 ## 数量与任务
 

@@ -4,7 +4,7 @@ description: "为代码、设计和测试开展消融实验：主 agent 准备�
 compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoning effort, and the documented dispatch parameters, plus the target project's experiment tools."
 ---
 
-# 消融实验
+# Ablation Experiment
 
 主 agent 负责实验设计、流程、验证标准、异常决策和最终验收。Luna 负责按获批方案准备实验变体、实现执行脚本、运行测试与采样、保存证据。
 

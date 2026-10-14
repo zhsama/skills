@@ -1,6 +1,6 @@
 ---
 name: disk-junk-scan
-description: "扫描 macOS 上与开发/coding agent 相关的可回收磁盘占用：构建与测试产物、包管理与工具缓存、多版本 toolchain、已合并或陈旧的 git worktree、验证/实验用临时目录、agent 工作区、Docker 与 iOS 模拟器数据，以及已卸载应用遗留的孤儿数据。输出一张按大小排序、带风险分级的表。当用户提到磁盘快满、清缓存、找垃圾目录、清理 worktree 或临时验证目录、点名 disk-junk-scan 时使用。默认只读；清理需要用户看过表之后明确授权。"
+description: "扫描 macOS 上开发与 coding agent 相关的可回收磁盘占用，输出按大小排序、带风险分级的表。用于磁盘快满、清缓存、找垃圾目录、清理 worktree 或临时验证目录，或点名 disk-junk-scan 时。覆盖构建与测试产物、包管理与工具缓存、多版本 toolchain、已合并或陈旧的 git worktree、验证用临时目录、agent 工作区、Docker 与 iOS 模拟器数据，以及已卸载应用的孤儿数据。默认只读；清理需要看过表之后明确授权。"
 compatibility: "Requires macOS and Python 3 with the standard library. Cleanup commands are proposed for review and run only after explicit approval."
 ---
 

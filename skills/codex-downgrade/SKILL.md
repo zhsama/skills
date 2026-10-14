@@ -4,7 +4,7 @@ description: "检查 Codex 实际服务模型是否低于所选模型。用于�
 compatibility: "Requires Python 3.11+ and access to local Codex session and configuration files. Online probing additionally requires network access and Codex ChatGPT credentials."
 ---
 
-# Codex downgrade detector
+# Codex Downgrade
 
 判断 Codex 实际服务的模型是不是用户选的那个。只采信服务端自己声明的 model slug / 路由头 / 客户端 reroute 日志，不看回答质量。
 

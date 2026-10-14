@@ -4,13 +4,13 @@
 
 | Skill | 兼容范围与要求 | 用途 |
 | --- | --- | --- |
-| [issue-brief](skills/issue-brief/SKILL.md) | 通用流程；需要 GitHub 访问、代码阅读和复现能力。 | 选择适合贡献经验的 issue，解释场景、正常流程、根因和修复方向。 |
-| [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | 通用流程；需要目标代码和项目工具链，子代理不可用时可顺序执行。 | 按个人工程偏好审查 TypeScript 生态代码，或在明确要求时保持行为不变地简化代码。 |
-| [codex-downgrade](skills/codex-downgrade/SKILL.md) | Codex 数据与服务专用；需要 Python 3.11+ 和本地 Codex 数据。 | 检查模型路由与降级情况，支持离线会话检查和在线探测。 |
-| [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | macOS；需要 Python 3 标准库。默认只读，清理须另行授权。 | 扫描开发与 coding agent 相关的可回收磁盘占用，输出按大小和风险分级的表。 |
-| [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-5.6-luna` 和 `max` 的子代理运行环境。 | 按 prompt 指定的数量和任务创建 Luna Max 子代理，由主 agent 协调与汇总。 |
-| [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-6.1-sol` 和 `max` 的子代理运行环境。 | 按 prompt 指定的数量和任务创建 Sol Max 子代理，由主 agent 协调与汇总。 |
-| [ablation-experiment](skills/ablation-experiment/SKILL.md) | 实验方法通用；当前执行版本要求上述 Luna 能力及项目实验工具。 | 主 agent 准备实验设计和 Luna 分工，用户确认后执行消融，由主 agent 核对原始证据。 |
+| [ablation-experiment](skills/ablation-experiment/SKILL.md) | 实验方法通用；当前执行版本要求 `gpt-5.6-luna`、`max` 及项目实验工具。 | 主 agent 设计实验与 Luna 分工，用户确认后执行并核对原始证据。 |
+| [codex-downgrade](skills/codex-downgrade/SKILL.md) | Codex 数据与服务专用；需要 Python 3.11+ 和本地 Codex 数据。 | 检查 Codex 实际服务的模型是否低于所选模型。 |
+| [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | macOS；需要 Python 3 标准库。默认只读，清理须另行授权。 | 扫描可回收的开发与 agent 磁盘占用，并按风险分级。 |
+| [issue-brief](skills/issue-brief/SKILL.md) | 通用流程；需要 GitHub 访问、代码阅读和复现能力。 | 按最近发展区挑选进阶开源问题，复现并讲清原理与修复方向。 |
+| [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | 通用流程；需要目标代码和项目工具链，子代理不可用时可顺序执行。 | 按 Ludwig 偏好审查或等价简化 TypeScript 代码。 |
+| [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-5.6-luna` 和 `max` 的子代理运行环境。 | 按指定数量和任务委派 Luna Max 子代理，并由主 agent 汇总。 |
+| [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-6.1-sol` 和 `max` 的子代理运行环境。 | 按指定数量和任务委派 Sol Max 子代理，并由主 agent 汇总。 |
 
 “通用”表示流程没有绑定特定模型或平台接口，不表示已经在所有 agent 上完成执行测试。`codex-downgrade` 的检查对象限定为 Codex，运行它的 agent 不必是 GPT。`disk-junk-scan` 的扫描对象限定为 macOS。Luna 与 Sol 技能则要求执行环境实际提供对应模型和子代理能力，仅安装到 Codex 并不能保证满足要求。
 
@@ -84,12 +84,12 @@ npx skills@latest add zhsama/skills --global --agent codex --skill sol-max-subag
 
 ```text
 $ablation-experiment 为当前改动准备实验设计和 Luna 子代理方案，先交给我确认
-$codex-downgrade 检查当前任务是否有模型降级证据
-$disk-junk-scan
-$issue-brief
+$codex-downgrade 审计最近的 Codex session，看实际服务的模型是不是我选的那个
+$disk-junk-scan 扫描可回收的开发磁盘占用，先给表，不要删除任何东西
+$issue-brief 依据我的近期贡献选择一个聚焦单一主要能力提升的 issue
 $issue-brief https://github.com/owner/repo/issues/123
+$ludwig-personal-code-review-preferences 审查当前目标
 $luna-max-subagents 创建 2 个子代理，分别检查 API 和测试，最后汇总结果
-$ludwig-personal-code-review-preferences 审查当前修改
 $sol-max-subagents 创建 2 个子代理，分别检查 API 和测试，最后汇总结果
 ```
 

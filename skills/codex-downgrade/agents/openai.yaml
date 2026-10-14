@@ -1,4 +1,4 @@
 interface:
-  display_name: "Codex Downgrade Detector"
-  short_description: "检查 Codex 实际服务模型是否被降级"
-  default_prompt: "审计最近的 Codex session，看实际服务的模型是不是我选的那个。"
+  display_name: "Codex Downgrade"
+  short_description: "检查 Codex 实际服务的模型是否低于所选模型"
+  default_prompt: "使用 $codex-downgrade，审计最近的 Codex session，看实际服务的模型是不是我选的那个。"
