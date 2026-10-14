@@ -1,0 +1,4 @@
+interface:
+  display_name: "Disk Junk Scan"
+  short_description: "扫描 macOS 上可回收的开发与 agent 磁盘占用，并按风险分级"
+  default_prompt: "使用 $disk-junk-scan 扫描可回收的开发磁盘占用，先给表，不要删除任何东西。"

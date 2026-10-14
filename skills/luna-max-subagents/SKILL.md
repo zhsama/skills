@@ -1,6 +1,7 @@
 ---
 name: luna-max-subagents
 description: "由主 agent 按用户 prompt 指定的数量和任务创建 gpt-5.6-luna、max 推理强度的 subagent，并协调与汇总结果。用于用户要求 Luna Max 子代理协作时。"
+compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoning effort, and the documented dispatch and coordination parameters."
 ---
 
 # Luna Max Subagents

@@ -1,0 +1,4 @@
+interface:
+  display_name: "gpt-6.1-sol · max 思考强度子代理"
+  short_description: "按指定数量和任务创建子代理，模型为 gpt-6.1-sol，思考强度为 max"
+  default_prompt: "使用 $sol-max-subagents，按我提供的数量和任务创建子代理，模型名称为 gpt-6.1-sol，思考强度为 max，由主 agent 协调并汇总结果。"

@@ -1,6 +1,7 @@
 ---
 name: codex-downgrade
 description: "检查 Codex 实际服务模型是否低于所选模型。用于用户问是否被降级、换模型、reroute、safety buffering、配额导致 fallback，或要求审计当前/最近 session。"
+compatibility: "Requires Python 3.11+ and access to local Codex session and configuration files. Online probing additionally requires network access and Codex ChatGPT credentials."
 ---
 
 # Codex downgrade detector

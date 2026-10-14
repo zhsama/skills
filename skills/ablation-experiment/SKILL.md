@@ -1,6 +1,7 @@
 ---
 name: ablation-experiment
 description: "为代码、设计和测试开展消融实验：主 agent 准备实验设计与 Luna 子代理方案，用户明确确认后由 gpt-5.6-luna 执行，主 agent 核对原始证据并验收。用于用户要求通过消融验证必要性、精简设计或保证 KISS；普通代码审查不自动进入本流程。"
+compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoning effort, and the documented dispatch parameters, plus the target project's experiment tools."
 ---
 
 # 消融实验
