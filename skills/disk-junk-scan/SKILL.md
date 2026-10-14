@@ -47,9 +47,10 @@ compatibility: "Requires macOS and Python 3 with the standard library. Cleanup c
 
 ```bash
 S=~/.agents/skills/disk-junk-scan/scripts
-python3 $S/scan.py [--repos-root ~/github] [--min-mib 50]          # 表
-python3 $S/scan.py [--repos-root ~/github] --json > /tmp/plan.json  # 同一批行，带命令
+python3 $S/scan.py [--repos-root ~/github] [--min-mib 50] --plan /tmp/plan.json
 ```
+
+表打到标准输出，同一批行写入 `--plan`。不要为了 JSON 再扫一遍。`--json` 只把 JSON 打到标准输出。
 
 `scan.py` = 机器级（`scan_machine.py`）+ 对 `--repos-root` 下每个主仓库跑 `scan_repo.py`，并行执行，合并去重后输出。只想看某个仓库：`python3 $S/scan_repo.py <repo>`。
 
@@ -59,17 +60,17 @@ python3 $S/scan.py [--repos-root ~/github] --json > /tmp/plan.json  # 同一批�
 
 ```bash
 python3 $S/apply.py /tmp/plan.json --tier A              # dry-run：列出将执行的命令和预计回收
-python3 $S/apply.py /tmp/plan.json --tier A --execute    # 执行 A 级
+python3 $S/apply.py /tmp/plan.json --tier A --execute    # 执行 A 级，结束时 pnpm store prune
 python3 $S/apply.py /tmp/plan.json --rows 4,6 --execute  # 只执行用户点名的行（B 级只能这样）
 ```
 
-`apply.py` 不做判断，只执行 scan 时记在每行上的 `command`（`rm -rf`、`git worktree remove`、`docker … prune`、`xcrun simctl delete`、`rustup toolchain uninstall`、`npm cache clean` 等），并在每条命令前重新核验：路径还在、没有其他进程的命令行包含该路径、git 目录仍干净、目录下无 tracked 文件；不满足就跳过并写明原因。浏览器、模拟器、headless shell 和 cargo/node 一样算占用。执行时路径更深的行先跑，这样子目录的 `git worktree remove` 发生在父目录的 `rm -rf` 之前。B 级父行的 GiB 已扣除直接子行，但它的命令仍删除整个目录。折叠的 `rm -rf` 按成员逐个删，一个路径失败不影响其余；只读解包目录会 `chmod -R u+w` 后重试，`Operation not permitted` 不重试。C 级和没有命令的行（Parallels、Zed、模型目录等要人工处理的）永远不执行。每行执行后回读目录大小，结束时 `df` 对比。
+`apply.py` 不做判断，只执行 scan 时记在每行上的 `command`（`rm -rf`、`git worktree remove`、`docker … prune`、`xcrun simctl delete`、`rustup toolchain uninstall`、`npm cache clean` 等），并在每条命令前重新核验：路径还在、没有其他进程的命令行包含该路径、git 目录仍干净、目录下无 tracked 文件；不满足就跳过并写明原因。浏览器、模拟器、headless shell 和 cargo/node 一样算占用。执行时路径更深的行先跑，这样子目录的 `git worktree remove` 发生在父目录的 `rm -rf` 之前。B 级父行的 GiB 已扣除直接子行，但它的命令仍删除整个目录。折叠的 `rm -rf` 按成员逐个删，一个路径失败不影响其余；只读解包目录会 `chmod -R u+w` 后重试，`Operation not permitted` 不重试。C 级和没有命令的行（Parallels、Zed、模型目录等要人工处理的）永远不执行。`rm -rf` 成功且路径消失时，回收量用 plan 里的体积；路径还在才再量。`--execute` 结束时跑 `pnpm store prune`。结束时 `df` 对比。
 
 plan 是扫描那一刻的快照；隔太久再 apply 前重新 scan 一次。
 
 ### 2 下钻
 
-脚本给的依据是机械判定，B 级大项要人工补一句归属：孤儿容器对应的应用是不是真卸了、干净未合并的 worktree 对应 PR 状态（`gh pr list --head <branch> --state all`）、`.tmp` 备份里是什么。命令见 [targets.md](targets.md)。看不出归属就写"未知"，不猜。
+脚本给的依据是机械判定。大于 1 GiB 的 B 级目录已经带了第一层 `构成：`。还要人工补一句归属：孤儿容器对应的应用是不是真卸了、干净未合并的 worktree 对应 PR 状态（`gh pr list --head <branch> --state all`）、`.tmp` 备份里是什么。命令见 [targets.md](targets.md)。看不出归属就写"未知"，不猜。不要再对整棵目录 `du`。
 
 ### 3 分级含义
 
@@ -89,9 +90,9 @@ plan 是扫描那一刻的快照；隔太久再 apply 前重新 scan 一次。
 
 - 优先工具自带命令，`rm -rf` 只用于纯产物目录和临时目录。
 - `pnpm store prune` 每次清理都顺手跑，不用先量。删 `node_modules` 前按 [targets.md](targets.md) 区分硬链接和独立副本。
-- `brew cleanup` 只删过期瓶。表上的 GiB 是整个缓存。`brew cleanup -s` 会连当前瓶一起删，下次安装重新下载。
+- `brew cleanup` 只删过期瓶。表上的 GiB 是 `brew cleanup -n` 的预计收回，不是整个缓存。`brew cleanup -s` 会连当前瓶一起删，下次安装重新下载。`uv cache prune` 没有 dry-run，目录大小不计入合计。
 - 删前再验：`git status --porcelain` 空、`git ls-files -- <path>` 空、`ps -axo command` 里没有这个路径（任何程序，含浏览器）。
-- 一行一回读，汇报实测值，不报估算。
+- `rm` 成功后用 plan 里的体积；只在路径还在时再量。工具命令用它自己打印的收回量。
 - 清完确认在用项目的 `node_modules` 还在，`docker system df` 符合预期。
 
 ## 脚本

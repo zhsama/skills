@@ -2,7 +2,7 @@
 """Run the machine scan and a repo scan for every git repository under a root,
 then print one merged Markdown table. Read-only.
 
-Usage: scan.py [--repos-root DIR] [--depth N] [--min-mib N] [--skip-machine] [--json]
+Usage: scan.py [--repos-root DIR] [--depth N] [--min-mib N] [--skip-machine] [--plan FILE] [--json]
 """
 import argparse
 import json
@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scan_machine  # noqa: E402
 import scan_repo  # noqa: E402
-from common import HOME, dedupe, number_rows, render_table  # noqa: E402
+from common import HOME, annotate_breakdown, dedupe, number_rows, render_table  # noqa: E402
 
 SKIP_DIRS = {"node_modules", "target", ".git", "vendor", ".venv", "Pods"}
 
@@ -44,7 +44,8 @@ def main():
     ap.add_argument("--depth", type=int, default=3, help="how deep to look for repos (default 3)")
     ap.add_argument("--min-mib", type=int, default=50, help="fold rows smaller than this (default 50)")
     ap.add_argument("--skip-machine", action="store_true", help="only scan repositories")
-    ap.add_argument("--json", action="store_true", help="emit the plan as JSON rows (feed to apply.py)")
+    ap.add_argument("--plan", help="write the JSON plan to this path as well as printing the table")
+    ap.add_argument("--json", action="store_true", help="print JSON instead of the table")
     args = ap.parse_args()
     min_kib = args.min_mib * 1024
 
@@ -62,10 +63,15 @@ def main():
     rows = machine.result()
     for r in repo_rows:
         rows.extend(r)
-    rows = number_rows(dedupe(rows))
-
+    rows = number_rows(annotate_breakdown(dedupe(rows)))
+    payload = json.dumps([r.as_dict() for r in rows], ensure_ascii=False, indent=2)
+    if args.plan:
+        with open(args.plan, "w") as fh:
+            fh.write(payload)
+            fh.write("\n")
+        print(f"plan {args.plan}", file=sys.stderr)
     if args.json:
-        print(json.dumps([r.as_dict() for r in rows], ensure_ascii=False, indent=2))
+        print(payload)
         return
     header = scan_machine.capacity_line()
     header += f"  扫描仓库 {len(repos)} 个（`{args.repos_root.replace(HOME, '~')}`）"

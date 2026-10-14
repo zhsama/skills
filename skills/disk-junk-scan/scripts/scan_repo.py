@@ -15,8 +15,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (HOME, MKTEMP_SUFFIX, Row, age_days, command_uses_path, du_many, entries, fold_small, git,  # noqa: E402
-                    is_git_dirty, render_table, rm_command, run)
+from common import (HOME, MKTEMP_SUFFIX, Row, age_days, annotate_breakdown, command_uses_path, dedupe,  # noqa: E402
+                    du_many, entries, fold_small, git, is_git_dirty, render_table, rm_command, run)
 
 BUILD_NAMES = {
     "target", "dist", "build", "lib", "out", ".next", ".turbo", ".nuxt", ".svelte-kit",
@@ -245,7 +245,7 @@ def main():
     top = git(["rev-parse", "--show-toplevel"], args.repo).strip()
     if not top:
         sys.exit(f"not a git repository: {args.repo}")
-    rows = collect(top, args.name or os.path.basename(top), args.min_mib * 1024)
+    rows = annotate_breakdown(dedupe(collect(top, args.name or os.path.basename(top), args.min_mib * 1024)))
     if args.json:
         print(json.dumps([r.as_dict() for r in rows], ensure_ascii=False, indent=2))
     else:

@@ -8,20 +8,21 @@ Dry-run by default. Rules that cannot be bypassed:
     files, no running process inside, git worktree still clean)
 
 Usage:
-  scan.py --json > /tmp/plan.json
+  scan.py --plan /tmp/plan.json
   apply.py /tmp/plan.json --tier A              # dry run: show what would run
-  apply.py /tmp/plan.json --tier A --execute    # do it
+  apply.py /tmp/plan.json --tier A --execute    # do it, then pnpm store prune
   apply.py /tmp/plan.json --rows 4,6,13 --execute
 """
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import HOME, command_uses_path, du_many, gib, git, is_git_dirty, run  # noqa: E402
+from common import HOME, command_uses_path, du_many, gib, git, is_git_dirty, parse_reported_free_kib, run  # noqa: E402
 
 
 def avail_kib():
@@ -70,7 +71,10 @@ def rm_tree(path):
 
 
 def execute_command(command):
-    """Run a row command. Folded `rm -rf` deletes one path at a time so one denial does not hide the rest."""
+    """Run a row command. Returns (errors, combined output).
+
+    Folded `rm -rf` deletes one path at a time so one denial does not hide the rest.
+    """
     if command[:2] == ["rm", "-rf"]:
         errors = []
         for path in command[2:]:
@@ -79,12 +83,35 @@ def execute_command(command):
             code, err = rm_tree(path)
             if code != 0:
                 errors.append(f"{path}: {err}")
-        return errors
+        return errors, ""
     proc = subprocess.run(command, capture_output=True, text=True, timeout=1800)
+    out = "\n".join(part for part in (proc.stdout, proc.stderr) if part)
     if proc.returncode == 0:
-        return []
-    err = (proc.stderr or proc.stdout or "").strip()
-    return [err.splitlines()[-1] if err else str(proc.returncode)]
+        return [], out
+    err = out.strip()
+    return [err.splitlines()[-1] if err else str(proc.returncode)], out
+
+
+def counted_kib(row):
+    """Reclaimable KiB from a plan row. Old plans have no reclaim_kib."""
+    if row.get("reclaim_kib") is None:
+        return row["size_kib"]
+    return row["reclaim_kib"]
+
+
+def pnpm_store_prune():
+    """Run at the end of a real cleanup. The store is never measured during scan."""
+    if not shutil.which("pnpm"):
+        return None
+    proc = subprocess.run(["pnpm", "store", "prune"], capture_output=True, text=True, timeout=1800)
+    out = "\n".join(part for part in (proc.stdout, proc.stderr) if part)
+    print("\n`pnpm store prune`")
+    if out.strip():
+        print(out.strip())
+    if proc.returncode != 0:
+        print("pnpm store prune 失败")
+        return None
+    return parse_reported_free_kib(out)
 
 
 def select(rows, tier, ids):
@@ -136,13 +163,21 @@ def main():
             print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 跳过：{reason} |")
             continue
         if not args.execute:
-            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 将执行 |")
-            freed_est += r["size_kib"]
+            print(f"| {r['id']} | `{path}` | {gib(counted_kib(r))} | {r['tier']} | `{cmd_short}` | 将执行 |")
+            freed_est += counted_kib(r)
             continue
-        size_before = sum(du_many(real_paths(r)).values()) if real_paths(r) else r["size_kib"]
-        errors = execute_command(r["command"])
-        size_after = sum(du_many(real_paths(r)).values()) if real_paths(r) else 0
-        freed = max(size_before - size_after, 0)
+        # The scan already measured an rm target. Walk it again only when a delete
+        # leaves part of the tree behind.
+        errors, output = execute_command(r["command"])
+        if r["command"][:2] == ["rm", "-rf"]:
+            remaining = [p for p in real_paths(r) if os.path.lexists(p)]
+            if remaining:
+                freed = max(r["size_kib"] - sum(du_many(remaining).values()), 0)
+            else:
+                freed = r["size_kib"]
+        else:
+            reported = parse_reported_free_kib(output)
+            freed = reported if reported is not None else counted_kib(r)
         if errors and freed <= 0:
             print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 失败：{errors[-1]} |")
             continue
@@ -151,12 +186,15 @@ def main():
         print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | {note} |")
 
     if args.execute:
+        pruned = pnpm_store_prune()
+        if pruned:
+            freed_est += pruned
         time.sleep(2)  # APFS reports freed space with a short delay
         after = avail_kib()
-        print(f"\n可用 {gib(before)} → **{gib(after)} GiB**（df 实测 +{gib(after - before)}；按目录累计 {gib(freed_est)}）")
+        print(f"\n可用 {gib(before)} → **{gib(after)} GiB**（df 实测 +{gib(after - before)}；按命令输出累计 {gib(freed_est)}）")
         print("APFS 可能延迟结算，几分钟后再 `df -h` 一次。")
     else:
-        print(f"\n预计回收约 {gib(freed_est)} GiB。加 `--execute` 执行。")
+        print(f"\n预计回收约 {gib(freed_est)} GiB。加 `--execute` 执行，结束时会跑 `pnpm store prune`。")
 
 
 if __name__ == "__main__":

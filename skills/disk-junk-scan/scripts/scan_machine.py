@@ -12,12 +12,14 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (HOME, MKTEMP_SUFFIX, Row, du_many, entries, fold_small, is_git_dirty,  # noqa: E402
-                    mtime_days, parse_human_size_kib, render_table, rm_command, run)
+from common import (HOME, MKTEMP_SUFFIX, Row, annotate_breakdown, dedupe, du_many, entries, fold_small, gib,  # noqa: E402
+                    is_git_dirty, mtime_days, parse_human_size_kib, parse_reported_free_kib, render_table,
+                    rm_command, run)
 
 L = f"{HOME}/Library"
 CACHE_DIR = f"{HOME}/.cache/disk-junk-scan"
@@ -356,6 +358,25 @@ def capacity_line():
     return f"数据卷 {int(f[1]) / 1048576:.0f} GiB，已用 {f[4]}，可用 **{int(f[3]) / 1048576:.1f} GiB**（只读扫描，未删除）"
 
 
+def annotate_tool_reclaim(rows):
+    """Directory size is not reclaimable when the command only prunes.
+
+    `brew cleanup -n` prints the amount it would free. `uv cache prune` has no
+    dry-run, so its directory stays visible but does not enter the tier total.
+    """
+    for row in rows:
+        if row.command == ["brew", "cleanup"] and shutil.which("brew"):
+            out = run(["brew", "cleanup", "-n"], timeout=180, merge_stderr=True)
+            reclaim = parse_reported_free_kib(out) or 0
+            row.evidence += f"（目录 {gib(row.size_kib)} GiB，cleanup 预计收回 {gib(reclaim)} GiB）"
+            row.size_kib = reclaim
+            row.reclaim_kib = reclaim
+        elif row.command[:3] == ["uv", "cache", "prune"]:
+            row.evidence += "（prune 不报告预计回收，目录大小不计入合计）"
+            row.reclaim_kib = 0
+    return rows
+
+
 def collect(min_kib):
     # Reason: every collector is dominated by waiting on du/docker/simctl, so they overlap well.
     jobs = [
@@ -370,7 +391,7 @@ def collect(min_kib):
     with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
         for result in pool.map(lambda job: job(), jobs):
             rows.extend(result)
-    return rows
+    return annotate_tool_reclaim(rows)
 
 
 def main():
@@ -378,7 +399,7 @@ def main():
     ap.add_argument("--min-mib", type=int, default=20, help="hide rows smaller than this (default 20)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
-    rows = collect(args.min_mib * 1024)
+    rows = annotate_breakdown(dedupe(collect(args.min_mib * 1024)))
     if args.json:
         print(json.dumps([r.as_dict() for r in rows], ensure_ascii=False, indent=2))
     else:

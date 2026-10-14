@@ -49,6 +49,7 @@ cat <dir>/.git                                     # 是文件且含 gitdir: →
 - 名字既无工程文件也无 mktemp 后缀的目录不在范围内（可能是别的应用的）。
 - `com.apple.*` 不收。反向域名只因最后一段像 mktemp 才命中的，也不收（`com.apple.Safari`、`dev.kdrag0n.MacVirt` 这类）。
 - 「24 小时内」按修改时间算，不是自然日。
+- 大于 1 GiB 的 B 级目录，依据里的 `构成：` 是 `du -d 1` 的前几名。下钻看这个，不要再量整棵目录。
 
 ## agent 目录
 
@@ -107,7 +108,8 @@ ls -la ~/Library/Containers/<bundle>/Data                                   # �
 | 路径 | 处理 |
 |---|---|
 | `~/Library/pnpm/store` | 不量大小（`du` 15 秒），直接 `pnpm store prune`；删后确认在用项目的 `node_modules` 还在 |
-| `~/Library/Caches/Homebrew` | `brew cleanup` 只删过期瓶，目录大小不是可回收量。`brew cleanup -s` 连当前瓶一起删，下次安装重新下载 |
+| `~/Library/Caches/Homebrew` | 表上的 GiB 来自 `brew cleanup -n`。`brew cleanup -s` 连当前瓶一起删，下次安装重新下载 |
+| `~/.cache/uv` | `uv cache prune` 没有 dry-run，目录大小不计入合计。收回量以执行时的输出为准 |
 | `~/.cargo/registry/src` | 可删，会从 `cache/` 重新解包 |
 | `~/.cargo/registry/cache` | 保留，不进表 |
 | `~/.cache/uv` | `uv cache prune` |

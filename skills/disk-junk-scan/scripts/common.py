@@ -25,6 +25,9 @@ class Row:
     members: list = field(default_factory=list)  # real paths behind an aggregate row
     member_kib: list = field(default_factory=list)  # sizes parallel to members
     id: int = 0  # 1-based position in the size-sorted table; set by number_rows
+    # None: deleting frees size_kib. An int, including 0, is the reclaimable amount
+    # when the command does not remove the measured directory.
+    reclaim_kib: int | None = None
 
     def as_dict(self):
         return asdict(self)
@@ -105,6 +108,72 @@ def du_many(paths, chunk=400):
 
 def gib(kib):
     return f"{kib / 1048576:.2f}"
+
+
+def counted_kib(row):
+    """Bytes a row contributes to a tier total. Tool commands may reclaim less than the directory."""
+    return row.size_kib if row.reclaim_kib is None else row.reclaim_kib
+
+
+def parse_reported_free_kib(text):
+    """Bytes a tool says it freed or would free. None when the output has no amount.
+
+    Accepts brew ('free approximately 1.2MB'), uv ('(3.1GiB)'), and pnpm ('(123 bytes)').
+    """
+    if not text:
+        return None
+    m = re.search(r"free approximately\s+([0-9.]+)\s*([kMGT]?)i?B", text, re.I)
+    if m:
+        return parse_human_size_kib(f"{m.group(1)}{m.group(2)}B")
+    m = re.search(r"\(([0-9.]+)\s*([kMGT])iB\)", text)
+    if m:
+        mult = {"k": 1024, "M": 1024 ** 2, "G": 1024 ** 3, "T": 1024 ** 4}[m.group(2)]
+        return int(float(m.group(1)) * mult / 1024)
+    m = re.search(r"\(([0-9.]+)\s*([kMGT])B\)", text)
+    if m:
+        return parse_human_size_kib(f"{m.group(1)}{m.group(2)}B")
+    m = re.search(r"\(([0-9]+)\s+bytes\)", text)
+    if m:
+        return int(m.group(1)) // 1024
+    return None
+
+
+def depth_breakdown(path, keep=5, min_child_kib=100 * 1024):
+    """Largest direct children of a directory, from one `du -d 1`. Empty when none qualify."""
+    out = run(["du", "-x", "-d", "1", "-k", path], timeout=900)
+    root = os.path.realpath(path)
+    children = []
+    for line in out.splitlines():
+        kib, _, child = line.partition("\t")
+        if not kib.isdigit():
+            continue
+        if os.path.realpath(child.rstrip("/")) == root:
+            continue
+        size = int(kib)
+        if size >= min_child_kib:
+            children.append((size, os.path.basename(child.rstrip("/"))))
+    children.sort(reverse=True)
+    if not children:
+        return ""
+    return "构成：" + "，".join(f"{name} {gib(size)} GiB" for size, name in children[:keep])
+
+
+def annotate_breakdown(rows, min_kib=1024 * 1024):
+    """Add a depth-1 breakdown to large tier-B directories so drill-down does not walk them again."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    chosen = [
+        r for r in rows
+        if r.tier == "B" and r.size_kib >= min_kib and r.path.startswith("/") and not r.members and os.path.isdir(r.path)
+    ]
+    if not chosen:
+        return rows
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        notes = list(pool.map(lambda r: depth_breakdown(r.path), chosen))
+    for row, note in zip(chosen, notes):
+        if note:
+            row.evidence += "；" + note
+    return rows
 
 
 def age_days(ts):
@@ -227,9 +296,12 @@ def render_table(rows, min_kib, capacity=None):
         path = r.path.replace(HOME, "~")
         lines.append(f"| {r.id} | `{path}` | {gib(r.size_kib)} | {r.category} | {r.tier} | {r.evidence} | {r.action} |")
     totals = {}
+    partial = any(r.reclaim_kib is not None and r.reclaim_kib != r.size_kib for r in rows)
     for r in rows:
-        totals[r.tier] = totals.get(r.tier, 0) + r.size_kib
+        totals[r.tier] = totals.get(r.tier, 0) + counted_kib(r)
     summary = "  ".join(f"{t}: {gib(totals.get(t, 0))} GiB" for t in ("A", "B", "C"))
+    if partial:
+        summary += "（按可回收量，不是目录大小）"
     lines.append("")
-    lines.append(f"合计 {summary}" + (f"（{len(hidden)} 条 < {min_kib // 1024} MiB 未列出，共 {gib(sum(r.size_kib for r in hidden))} GiB）" if hidden else ""))
+    lines.append(f"合计 {summary}" + (f"（{len(hidden)} 条 < {min_kib // 1024} MiB 未列出，共 {gib(sum(counted_kib(r) for r in hidden))} GiB）" if hidden else ""))
     return "\n".join(lines)
