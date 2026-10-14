@@ -1,4 +1,4 @@
 interface:
   display_name: "Sol Max Subagents"
-  short_description: "按用户指定的数量和任务，委派 Sol Max 子代理并汇总结果"
-  default_prompt: "使用 $sol-max-subagents，按我提供的数量和任务创建 Sol Max 子代理，由主 agent 协调并汇总结果。"
+  short_description: "默认 3 个 Sol Max 子代理，主 agent 也可按任务决定数量，并汇总结果"
+  default_prompt: "使用 $sol-max-subagents，按我提供的任务创建 Sol Max 子代理；我没指定数量时默认 3 个，你也可以自行决定。"

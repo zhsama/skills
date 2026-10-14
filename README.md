@@ -9,8 +9,8 @@
 | [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | macOS；需要 Python 3 标准库。默认只读，清理须另行授权。 | 扫描可回收的开发与 agent 磁盘占用，并按风险分级。 |
 | [issue-brief](skills/issue-brief/SKILL.md) | 通用流程；需要 GitHub 访问、代码阅读和复现能力。 | 按最近发展区挑选进阶开源问题，复现并讲清原理与修复方向。 |
 | [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | 通用流程；需要目标代码和项目工具链，子代理不可用时可顺序执行。 | 按 Ludwig 偏好审查或等价简化 TypeScript 代码。 |
-| [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-5.6-luna` 和 `max` 的子代理运行环境。 | 按指定数量和任务委派 Luna Max 子代理，并由主 agent 汇总。 |
-| [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-6.1-sol` 和 `max` 的子代理运行环境。 | 按指定数量和任务委派 Sol Max 子代理，并由主 agent 汇总。 |
+| [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-5.6-luna` 和 `max` 的子代理运行环境。 | 委派 Luna Max 子代理并由主 agent 汇总。未指定数量时默认 3 个，主 agent 也可自行决定。 |
+| [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-6.1-sol` 和 `max` 的子代理运行环境。 | 委派 Sol Max 子代理并由主 agent 汇总。未指定数量时默认 3 个，主 agent 也可自行决定。 |
 
 “通用”表示流程没有绑定特定模型或平台接口，不表示已经在所有 agent 上完成执行测试。`codex-downgrade` 的检查对象限定为 Codex，运行它的 agent 不必是 GPT。`disk-junk-scan` 的扫描对象限定为 macOS。Luna 与 Sol 技能则要求执行环境实际提供对应模型和子代理能力，仅安装到 Codex 并不能保证满足要求。
 
@@ -89,8 +89,8 @@ $disk-junk-scan 扫描可回收的开发磁盘占用，先给表，不要删除�
 $issue-brief 依据我的近期贡献选择一个聚焦单一主要能力提升的 issue
 $issue-brief https://github.com/owner/repo/issues/123
 $ludwig-personal-code-review-preferences 审查当前目标
-$luna-max-subagents 创建 2 个子代理，分别检查 API 和测试，最后汇总结果
-$sol-max-subagents 创建 2 个子代理，分别检查 API 和测试，最后汇总结果
+$luna-max-subagents 分别检查 API 和测试，最后汇总结果
+$sol-max-subagents 分别检查 API 和测试，最后汇总结果
 ```
 
 `issue-brief` 默认止于问题分析和修复建议，需要可用的 GitHub 访问能力。审查 skill 根据任务使用代码、项目工具链和官方资料。安装这些指令不会配置 GitHub 凭证、MCP 服务或项目依赖。

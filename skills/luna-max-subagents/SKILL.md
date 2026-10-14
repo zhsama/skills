@@ -1,6 +1,6 @@
 ---
 name: luna-max-subagents
-description: "由主 agent 按用户 prompt 指定的数量和任务创建 gpt-5.6-luna、max 推理强度的 subagent，并协调与汇总结果。用于用户要求 Luna Max 子代理协作时。"
+description: "由主 agent 创建 gpt-5.6-luna、max 推理强度的 subagent，并协调与汇总结果。用户未指定数量时默认为 3 个，主 agent 也可按任务自行决定数量。用于用户要求 Luna Max 子代理协作时。"
 compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoning effort, and the documented dispatch and coordination parameters."
 ---
 
@@ -10,10 +10,11 @@ compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoni
 
 ## 数量与任务
 
-从用户当前及后续 prompt 读取子代理数量、各自任务和限制。本技能不预设数量或任务，也不因被加载就立即创建子代理。
+从用户当前及后续 prompt 读取子代理数量、各自任务和限制。本技能不预设任务，也不因被加载就立即创建子代理。用户未指定数量时，默认创建 3 个；主 agent 也可以按任务自行决定数量。
 
-- 用户给出数量和分工时，按指定执行；只给出总体任务时，在指定数量内拆分工作。
-- 数量或任务缺失且无法从上下文确定时，简短询问缺失信息；用户明确让主 agent 自行决定时才自行选择。
+- 用户给出数量和分工时，按指定执行；只给出总体任务时，在所选数量内拆分工作。
+- 用户未指定数量时使用 3 个。任务形态明显不适合 3 个时，主 agent 自行选择数量并说明理由，不必先询问。
+- 任务内容缺失且无法从上下文确定时，简短询问任务；数量不因此停下来问。
 - 后续 prompt 调整已有分工时，优先给对应子代理发送补充任务；明确要求新增时才增加数量。
 
 ## 创建子代理
