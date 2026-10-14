@@ -6,9 +6,11 @@ import time
 from dataclasses import asdict, dataclass, field
 
 HOME = os.path.expanduser("~")
-# mktemp / tempfile suffixes: 6-8 random alphanumerics after '.' or '-', containing at
-# least one digit or capital so that ordinary words like "-research" do not match.
-MKTEMP_SUFFIX = re.compile(r"[.-](?=[A-Za-z0-9_]{6,8}$)(?=[a-z_]*[A-Z0-9])[A-Za-z0-9_]{6,8}$")
+# mktemp suffixes: 6-8 alphanumerics after '.' or '-'. A single leading capital
+# (".Safari") is a word, not a random token. Require a digit or a second capital.
+MKTEMP_SUFFIX = re.compile(
+    r"[.-](?=[A-Za-z0-9_]{6,8}$)(?=.*[0-9]|.*[A-Z].*[A-Z])[A-Za-z0-9_]{6,8}$"
+)
 
 
 @dataclass
@@ -141,13 +143,28 @@ def is_git_dirty(path):
     return bool(git(["status", "--porcelain", "--untracked-files=all"], path).strip())
 
 
+def command_uses_path(path, command):
+    """True when some other process was started with this path in its argv.
+
+    Any binary counts: a browser using a Playwright profile does not mention
+    cargo or node. The scanner's own du/grep/scan commands do not count.
+    """
+    if not path or path not in command:
+        return False
+    if any(name in command for name in ("apply.py", "scan.py", "scan_repo.py", "scan_machine.py")):
+        return False
+    argv0 = os.path.basename(command.split(None, 1)[0]) if command.split(None, 1) else ""
+    return argv0 not in {"du", "grep", "rg", "find"}
+
+
 def dedupe(rows):
     """Drop duplicate paths and make nested rows additive.
 
     * tier A ancestor (whole thing goes, e.g. a removable worktree): its descendants are
       dropped, the ancestor's command already covers them
-    * tier B/C ancestor (needs confirmation / stays): kept, but descendants' sizes are
-      subtracted from it so the tier totals do not double count
+    * tier B/C ancestor (needs confirmation / stays): kept, but each direct child's
+      original size is subtracted once. A grandchild listed on its own is already inside
+      that child, so subtracting it again hides bytes the parent `rm -rf` still deletes.
     """
     seen, unique = set(), []
     for r in sorted(rows, key=lambda r: -r.size_kib):
@@ -167,16 +184,31 @@ def dedupe(rows):
         seen.add(key)
         unique.append(r)
     by_path = {os.path.realpath(r.path): r for r in unique}
+    paths = list(by_path)
+    original = {p: r.size_kib for p, r in by_path.items()}
+
+    def nearest_ancestor(path):
+        best = None
+        for parent in paths:
+            if parent != path and path.startswith(parent + os.sep) and (best is None or len(parent) > len(best)):
+                best = parent
+        return best
+
+    direct = {}
+    for path in paths:
+        ancestor = nearest_ancestor(path)
+        if ancestor:
+            direct.setdefault(ancestor, []).append(by_path[path])
     dropped = set()
     for p, parent in by_path.items():
-        children = [c for cp, c in by_path.items() if cp != p and cp.startswith(p + os.sep)]
-        if not children:
+        descendants = [cp for cp in paths if cp.startswith(p + os.sep)]
+        if not descendants:
             continue
         if parent.tier == "A":
-            dropped.update(os.path.realpath(c.path) for c in children)
+            dropped.update(descendants)
         else:
-            parent.size_kib = max(parent.size_kib - sum(c.size_kib for c in children), 0)
-            parent.evidence += "（不含已单列的子项）"
+            parent.size_kib = max(original[p] - sum(original[os.path.realpath(c.path)] for c in direct.get(p, [])), 0)
+            parent.evidence += "（不含已单列的子项；命令仍删除整个目录）"
     return [r for r in unique if os.path.realpath(r.path) not in dropped]
 
 

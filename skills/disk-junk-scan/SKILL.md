@@ -36,11 +36,11 @@ compatibility: "Requires macOS and Python 3 with the standard library. Cleanup c
 ## 流程：plan → 看表 → apply
 
 ```
-- [ ] 1 scan.py 出表 + 同一份 plan.json（约 10 秒）
+- [ ] 1 scan.py 出表 + 同一份 plan.json（通常几十秒；仓库多或磁盘冷时要几分钟）
 - [ ] 2 表里 B 级大项，按 targets.md 下钻，把"这是什么、谁在用"补进依据列
 - [ ] 3 把表给用户，先说可用空间和 A 级合计，再说 B 级需要点头的项
 - [ ] 4 （仅授权后）apply.py 先 dry-run 给用户看命令，再加 --execute
-- [ ] 5 df 对比起始值；APFS 延迟结算，隔几分钟再读一次
+- [ ] 5 用每行回读的目录差汇报回收。大批删除后立刻读的 `df` 可能少报几十 GiB，隔几分钟再对一次
 ```
 
 ### 1 扫描
@@ -63,7 +63,7 @@ python3 $S/apply.py /tmp/plan.json --tier A --execute    # 执行 A 级
 python3 $S/apply.py /tmp/plan.json --rows 4,6 --execute  # 只执行用户点名的行（B 级只能这样）
 ```
 
-`apply.py` 不做判断，只执行 scan 时记在每行上的 `command`（`rm -rf`、`git worktree remove`、`docker … prune`、`xcrun simctl delete`、`rustup toolchain uninstall`、`npm cache clean` 等），并在每条命令前重新核验：路径还在、无进程占用、git 目录仍干净、目录下无 tracked 文件；不满足就跳过并写明原因。C 级和没有命令的行（Parallels、Zed、模型目录等要人工处理的）永远不执行。`rm -rf` 失败时 `chmod -R u+w` 后重试一次（dotslash、cargo 等会把解包目录设成只读）。每行执行后回读目录大小，结束时 `df` 对比。
+`apply.py` 不做判断，只执行 scan 时记在每行上的 `command`（`rm -rf`、`git worktree remove`、`docker … prune`、`xcrun simctl delete`、`rustup toolchain uninstall`、`npm cache clean` 等），并在每条命令前重新核验：路径还在、没有其他进程的命令行包含该路径、git 目录仍干净、目录下无 tracked 文件；不满足就跳过并写明原因。浏览器、模拟器、headless shell 和 cargo/node 一样算占用。执行时路径更深的行先跑，这样子目录的 `git worktree remove` 发生在父目录的 `rm -rf` 之前。B 级父行的 GiB 已扣除直接子行，但它的命令仍删除整个目录。折叠的 `rm -rf` 按成员逐个删，一个路径失败不影响其余；只读解包目录会 `chmod -R u+w` 后重试，`Operation not permitted` 不重试。C 级和没有命令的行（Parallels、Zed、模型目录等要人工处理的）永远不执行。每行执行后回读目录大小，结束时 `df` 对比。
 
 plan 是扫描那一刻的快照；隔太久再 apply 前重新 scan 一次。
 
@@ -76,7 +76,7 @@ plan 是扫描那一刻的快照；隔太久再 apply 前重新 scan 一次。
 | 级 | 含义 | 动作 |
 |---|---|---|
 | A | 可重建，删了只损失重建时间 | 用户说"清 A"即可批量处理 |
-| B | 可重建但代价高，或有状态，或判定是启发式的（孤儿数据、未合并 worktree、今天刚动过的临时目录） | 逐行让用户点头 |
+| B | 可重建但代价高，或有状态，或判定是启发式的（孤儿数据、未合并 worktree、24 小时内改动过的临时目录） | 逐行让用户点头 |
 | C | 有未提交改动或进程在用 | 只报大小，不动 |
 
 判定要点：
@@ -88,10 +88,11 @@ plan 是扫描那一刻的快照；隔太久再 apply 前重新 scan 一次。
 ### 清理规范（apply 之外的手工项也遵守）
 
 - 优先工具自带命令，`rm -rf` 只用于纯产物目录和临时目录。
-- `pnpm store prune` 每次清理都顺手跑，不用先量。
-- 删前再验：`git status --porcelain` 空、`git ls-files -- <path>` 空、`ps -axo command | grep <path>` 无 cargo/rustc/jest/vitest/node。
+- `pnpm store prune` 每次清理都顺手跑，不用先量。删 `node_modules` 前按 [targets.md](targets.md) 区分硬链接和独立副本。
+- `brew cleanup` 只删过期瓶。表上的 GiB 是整个缓存。`brew cleanup -s` 会连当前瓶一起删，下次安装重新下载。
+- 删前再验：`git status --porcelain` 空、`git ls-files -- <path>` 空、`ps -axo command` 里没有这个路径（任何程序，含浏览器）。
 - 一行一回读，汇报实测值，不报估算。
-- 清完检查 `node_modules` 指向 pnpm store 的链接没断，`docker system df` 符合预期。
+- 清完确认在用项目的 `node_modules` 还在，`docker system df` 符合预期。
 
 ## 脚本
 
@@ -103,7 +104,7 @@ plan 是扫描那一刻的快照；隔太久再 apply 前重新 scan 一次。
 | `scripts/scan_repo.py` | 仓库级：worktree 判定、ignored 产物/依赖、同名临时目录 |
 | `scripts/common.py` | 共享：`Row`（含 `command`/`members`/`id`）、批量 `du`、小项折叠、去重、表渲染 |
 
-Python 3 标准库。慢的从来不是 Python，是进程数：第一版每个候选路径各起一个 `du`/`git`，5000 次 spawn 花了 80 秒；现在一个 worktree 一次 `du`、一次 `git ls-files`，加并行，约 10 秒。
+Python 3 标准库。慢的从来不是 Python，是进程数：第一版每个候选路径各起一个 `du`/`git`，5000 次 spawn 花了 80 秒；现在一个 worktree 一次 `du`、一次 `git ls-files`，加并行。仓库多或磁盘冷时要几分钟。
 
 ## 参考
 

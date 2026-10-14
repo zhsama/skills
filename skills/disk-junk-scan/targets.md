@@ -29,12 +29,12 @@ git -C <repo> worktree remove <path>                          # 删（授权后�
 ```bash
 git -C <wt> ls-files -z --others --ignored --exclude-standard --directory | tr '\0' '\n'
 git -C <wt> ls-files -- <rel>          # 非空 = 有 tracked 文件，不能删
-ps -axo command | grep -E 'cargo|rustc|jest|vitest|node' | grep <path>
+ps -axo command | grep <path>
 ```
 
 - Rust `target/` 单仓可到 40 GB+，每个 worktree 各一份。
 - 移动端 `android/app/build`、`ios/build`、`ios/Pods`、`.cxx`。
-- pnpm 项目的 `node_modules` 是链接到 store 的，`du -x` 很小；真正的体积在 `~/Library/pnpm/store`，只能 `pnpm store prune`。
+- pnpm 的 `node_modules` 不一定是硬链接。抽几个普通文件看 `st_nlink`：大于 1 时删目录不腾出 store 里的空间；等于 1 是独立副本，`du` 就是实占，删了要重装。两种都跑 `pnpm store prune`。
 
 ## 临时目录
 
@@ -47,13 +47,15 @@ cat <dir>/.git                                     # 是文件且含 gitdir: →
 - 命名模式：`<项目>-<issue号>-(validation|ablation|perf|bin|cli|tools).<mktemp后缀>`。
 - `$TMPDIR` 下 `node-compile-cache` `metro-cache` `v8-compile-cache-*` `tsx-*` `jest_*` `vitest-*` 是测试/编译缓存，A。
 - 名字既无工程文件也无 mktemp 后缀的目录不在范围内（可能是别的应用的）。
+- `com.apple.*` 不收。反向域名只因最后一段像 mktemp 才命中的，也不收（`com.apple.Safari`、`dev.kdrag0n.MacVirt` 这类）。
+- 「24 小时内」按修改时间算，不是自然日。
 
 ## agent 目录
 
 | 路径 | 内容 | 级 |
 |---|---|---|
 | `~/.codex/{cache,tmp,log,shell_snapshots,worktrees}` `~/.cache/codex-runtimes` | 缓存/日志/worktree | A（worktree 看 git 状态） |
-| `~/.codex/{sessions,archived_sessions,history.jsonl,*.sqlite}` | 会话历史 | C |
+| `~/.codex/{sessions,archived_sessions,history.jsonl,*.sqlite}`，以及 `.tmp` 里的 `codex-history-original-backup-*`、`sessions`、`archived_sessions`、`*.sqlite` | 会话历史或它的备份 | C；备份整目录标 B，先看内容。当前 `~/.codex/sessions` 还在时，删的是备份 |
 | `~/.claude/{cache,debug}` | 缓存 | A |
 | `~/.claude/projects` | 会话 | C |
 | `~/.cursor/{worktrees,projects}` | worktree / 会话 | 看 git 状态 / C |
@@ -104,7 +106,8 @@ ls -la ~/Library/Containers/<bundle>/Data                                   # �
 
 | 路径 | 处理 |
 |---|---|
-| `~/Library/pnpm/store` | 不量大小（`du` 15 秒），直接 `pnpm store prune`；删后检查项目 `node_modules` 链接 |
+| `~/Library/pnpm/store` | 不量大小（`du` 15 秒），直接 `pnpm store prune`；删后确认在用项目的 `node_modules` 还在 |
+| `~/Library/Caches/Homebrew` | `brew cleanup` 只删过期瓶，目录大小不是可回收量。`brew cleanup -s` 连当前瓶一起删，下次安装重新下载 |
 | `~/.cargo/registry/src` | 可删，会从 `cache/` 重新解包 |
 | `~/.cargo/registry/cache` | 保留，不进表 |
 | `~/.cache/uv` | `uv cache prune` |

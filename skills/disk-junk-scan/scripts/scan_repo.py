@@ -15,7 +15,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (HOME, MKTEMP_SUFFIX, Row, age_days, du_many, entries, fold_small, git,  # noqa: E402
+from common import (HOME, MKTEMP_SUFFIX, Row, age_days, command_uses_path, du_many, entries, fold_small, git,  # noqa: E402
                     is_git_dirty, render_table, rm_command, run)
 
 BUILD_NAMES = {
@@ -26,7 +26,6 @@ BUILD_NAMES = {
 }
 BUILD_SUFFIXES = (".tsbuildinfo",)
 DEP_NAMES = {"node_modules", ".venv", "venv", "Pods", ".pnpm-store", "vendor", ".yarn"}
-PROCESS_HINTS = ("cargo", "rustc", "rust-analyzer", "jest", "vitest", "node", "pnpm", "tsc", "python")
 TEMP_ROOTS = ["/private/tmp", os.environ.get("TMPDIR", ""),
               f"{HOME}/.codex/worktrees", f"{HOME}/.cursor/worktrees", f"{HOME}/conductor/workspaces"]
 DEFAULT_MIN_KIB = 20 * 1024
@@ -77,9 +76,9 @@ def running_commands():
 
 
 def processes_using(path, commands):
-    # Reason: lsof over a large worktree is too slow; a command-line substring match
-    # catches cargo/jest/node processes launched from the directory.
-    return [c for c in commands if path in c and any(h in c for h in PROCESS_HINTS)]
+    # Reason: lsof over a large worktree is too slow. Any argv that contains the
+    # path counts, including browsers holding a profile under that tree.
+    return [c for c in commands if command_uses_path(path, c)]
 
 
 def is_merged(repo, head, default):
@@ -212,7 +211,7 @@ def temp_rows(project_name, registered, min_kib):
         if dirty:
             rows.append(Row(e.path, size, "临时目录", "C", evidence + "，git 有未提交改动", "不动"))
         elif days < 1:
-            rows.append(Row(e.path, size, "临时目录", "B", evidence, "今天刚动过，确认后删", command=rm_command(e.path)))
+            rows.append(Row(e.path, size, "临时目录", "B", evidence, "24 小时内改动过，确认后删", command=rm_command(e.path)))
         else:
             rows.append(Row(e.path, size, "临时目录", "A", evidence, "删", command=rm_command(e.path)))
     folded = []

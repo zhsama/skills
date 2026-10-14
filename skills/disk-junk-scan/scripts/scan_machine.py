@@ -51,7 +51,7 @@ FIXED = [
     (f"{HOME}/.lmstudio", "LM Studio 模型", "B", "模型", "应用内删"),
     (f"{HOME}/.cache/codex-runtimes", "Codex 运行时", "A", "Codex 自动重下", "删"),
     (f"{L}/Caches/ms-playwright", "Playwright 浏览器", "A", "`npx playwright install` 重下", "删"),
-    (f"{L}/Caches/Homebrew", "Homebrew 下载", "A", "可重下", "`brew cleanup`"),
+    (f"{L}/Caches/Homebrew", "Homebrew 下载", "A", "`brew cleanup` 只删过期瓶，GiB 是整个缓存", "`brew cleanup`"),
     (f"{L}/Caches/CocoaPods", "CocoaPods 缓存", "A", "可重下", "删"),
     (f"{L}/Caches/org.swift.swiftpm", "SwiftPM 缓存", "A", "可重下", "删"),
     (f"{L}/Caches/go-build", "Go 构建缓存", "A", "可重建", "`go clean -cache`"),
@@ -230,7 +230,13 @@ def agent_specs():
             elif e.name in AGENT_CACHE_NAMES:
                 yield (e.path, "agent 缓存/日志", "A", label, "删")
             elif e.name in AGENT_BACKUP_NAMES:
-                yield (e.path, "agent 临时/备份", "B", label + "（含历史备份）", "看内容后删")
+                names = {c.name for c in entries(e.path)}
+                session_copy = any(
+                    n in {"sessions", "archived_sessions"} or n.startswith("codex-history-original-backup") or n.endswith(".sqlite")
+                    for n in names
+                )
+                note = "，里面有会话备份" if session_copy else "（含历史备份）"
+                yield (e.path, "agent 临时/备份", "B", label + note, "看内容后删")
 
 
 def temp_rows(min_kib):
@@ -247,12 +253,15 @@ def temp_rows(min_kib):
 
 def temp_specs(root):
     for e in entries(root):
-        if not e.is_dir(follow_symlinks=False):
+        if not e.is_dir(follow_symlinks=False) or "com.apple." in e.name:
             continue
         names = {c.name for c in entries(e.path)}
         dev = bool(names & DEV_MARKERS)
         test_cache = e.name.startswith(TEST_CACHE_PREFIXES)
         mk = bool(MKTEMP_SUFFIX.search(e.name))
+        # A bundle id whose last label merely looks random is an app temp dir, not a project mktemp.
+        if not dev and not test_cache and REVERSE_DNS.match(e.name):
+            continue
         if not (dev or test_cache or mk):
             continue  # not developer-related; out of scope
         why = ", ".join(w for w, ok in (("含工程文件", dev), ("测试缓存", test_cache), ("mktemp 后缀", mk)) if ok)
@@ -260,7 +269,7 @@ def temp_specs(root):
         if ".git" in names:
             yield git_dir_spec(e.path, "临时目录", why + "；")
         elif days is not None and days < 1:
-            yield (e.path, "临时目录", "B", f"{why}，今天改动过", "确认后删")
+            yield (e.path, "临时目录", "B", f"{why}，24 小时内改动过", "确认后删")
         else:
             yield (e.path, "临时目录", "A", f"{why}，改动于 {days} 天前", "删")
 

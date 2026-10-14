@@ -21,9 +21,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import HOME, du_many, gib, git, is_git_dirty, run  # noqa: E402
-
-PROCESS_HINTS = ("cargo", "rustc", "rust-analyzer", "jest", "vitest", "node", "pnpm", "tsc", "python", "gradle", "xcodebuild")
+from common import HOME, command_uses_path, du_many, gib, git, is_git_dirty, run  # noqa: E402
 
 
 def avail_kib():
@@ -45,7 +43,7 @@ def verify(row, commands):
         # `git worktree prune` exists precisely because the directory is gone.
         return None if "prune" in row["command"] else "路径已不存在"
     for p in paths:
-        if any(p in c and any(h in c for h in PROCESS_HINTS) for c in commands):
+        if any(command_uses_path(p, c) for c in commands):
             return f"有进程在用 {p}"
         top = git(["rev-parse", "--show-toplevel"], p if os.path.isdir(p) else os.path.dirname(p)).strip()
         if not top:
@@ -57,6 +55,36 @@ def verify(row, commands):
         elif git(["ls-files", "--", os.path.relpath(p, top)], top).strip():
             return f"含 tracked 文件 {p}"
     return None
+
+
+def rm_tree(path):
+    """Remove one tree. Retry read-only extracts; leave SIP/TCC denials as failures."""
+    proc = subprocess.run(["rm", "-rf", path], capture_output=True, text=True, timeout=1800)
+    err = (proc.stderr or proc.stdout or "").strip()
+    if proc.returncode != 0 and "Operation not permitted" not in err and os.path.lexists(path):
+        # Reason: dotslash and cargo extract read-only trees; rm cannot unlink without u+w.
+        subprocess.run(["chmod", "-R", "u+w", path], capture_output=True, timeout=600)
+        proc = subprocess.run(["rm", "-rf", path], capture_output=True, text=True, timeout=1800)
+        err = (proc.stderr or proc.stdout or "").strip()
+    return proc.returncode, (err.splitlines()[-1] if err else str(proc.returncode))
+
+
+def execute_command(command):
+    """Run a row command. Folded `rm -rf` deletes one path at a time so one denial does not hide the rest."""
+    if command[:2] == ["rm", "-rf"]:
+        errors = []
+        for path in command[2:]:
+            if not os.path.lexists(path):
+                continue
+            code, err = rm_tree(path)
+            if code != 0:
+                errors.append(f"{path}: {err}")
+        return errors
+    proc = subprocess.run(command, capture_output=True, text=True, timeout=1800)
+    if proc.returncode == 0:
+        return []
+    err = (proc.stderr or proc.stdout or "").strip()
+    return [err.splitlines()[-1] if err else str(proc.returncode)]
 
 
 def select(rows, tier, ids):
@@ -83,6 +111,8 @@ def main():
         rows = json.load(fh)
     ids = {int(x) for x in args.rows.split(",")} if args.rows else set()
     chosen = select(rows, args.tier, ids)
+    # Deeper paths first, so `git worktree remove` runs before an ancestor `rm -rf`.
+    chosen.sort(key=lambda r: max((p.count(os.sep) for p in (real_paths(r) or [r["path"]])), default=0), reverse=True)
     commands = [line.strip() for line in run(["ps", "-axo", "command="]).splitlines() if "apply.py" not in line]
 
     before = avail_kib()
@@ -110,20 +140,15 @@ def main():
             freed_est += r["size_kib"]
             continue
         size_before = sum(du_many(real_paths(r)).values()) if real_paths(r) else r["size_kib"]
-        proc = subprocess.run(r["command"], capture_output=True, text=True, timeout=1800)
-        if proc.returncode != 0 and r["command"][:2] == ["rm", "-rf"]:
-            # Reason: some tools (dotslash, cargo registry) extract read-only trees; rm cannot
-            # unlink inside a dir without u+w. Everything here is user-owned, so restore it and retry.
-            subprocess.run(["chmod", "-R", "u+w", *[p for p in real_paths(r) if os.path.lexists(p)]],
-                           capture_output=True, timeout=600)
-            proc = subprocess.run(r["command"], capture_output=True, text=True, timeout=1800)
-        if proc.returncode != 0:
-            err = (proc.stderr or proc.stdout).strip().splitlines()
-            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 失败：{err[-1] if err else proc.returncode} |")
-            continue
+        errors = execute_command(r["command"])
         size_after = sum(du_many(real_paths(r)).values()) if real_paths(r) else 0
-        freed_est += max(size_before - size_after, 0)
-        print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 完成，回收 {gib(size_before - size_after)} GiB |")
+        freed = max(size_before - size_after, 0)
+        if errors and freed <= 0:
+            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 失败：{errors[-1]} |")
+            continue
+        freed_est += freed
+        note = f"完成，回收 {gib(freed)} GiB" if not errors else f"部分完成，回收 {gib(freed)} GiB；未删 {errors[-1]}"
+        print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | {note} |")
 
     if args.execute:
         time.sleep(2)  # APFS reports freed space with a short delay
