@@ -9,6 +9,7 @@ This private repository contains skills created or customized for zhsama with as
 - `disk-junk-scan` preserves the installed macOS disk-scan skill, including its instructions, drill-down notes, and Python scripts. It scans developer and coding-agent leftovers and stays read-only until cleanup is explicitly approved. No machine inventory or personal paths are included.
 
 - `issue-brief` was created from zhsama's issue discovery, reproduction, learning, and contribution workflow. It is not an upstream project policy.
+- `issue-review-workflow` records zhsama's process for independent issue verification, user approval of the problem list and repair scope, and review of the resulting changes.
 - `luna-max-subagents` was created from zhsama's request to have the main agent delegate user-specified tasks and agent counts to `gpt-5.6-luna` subagents with `max` reasoning effort. Its invocation parameters follow the available collaboration tool schema.
 - `sol-max-subagents` follows the same delegation shape for `gpt-6.1-sol` with `max` reasoning effort. It is independent of the Luna skill and does not replace it.
 - `ludwig-personal-code-review-preferences` contains zhsama's maintained TypeScript ecosystem review and simplification preferences. Personal preferences are distinguished from project rules and externally verified standards in the skill.
