@@ -1,4 +1,4 @@
 interface:
   display_name: "Ablation Experiment"
-  short_description: "主 agent 设计实验与 Luna 分工，用户确认后执行并核对原始证据"
-  default_prompt: "使用 $ablation-experiment，为当前改动准备实验设计和 Luna 子代理方案，先交给我确认，同意后再执行。"
+  short_description: "Design ablations, approve Luna tasks, and verify the evidence"
+  default_prompt: "Use $ablation-experiment to prepare an experiment and a Luna staffing plan for this change. Show me both plans and wait for my approval before running them."

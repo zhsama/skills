@@ -27,51 +27,51 @@ CACHE_DIR = f"{HOME}/.cache/disk-junk-scan"
 # (path, category, tier, evidence, action). Only actionable entries; sizes measured at scan time.
 # apply.py runs `rm -rf <path>` unless the path has an entry in TOOL_COMMANDS.
 FIXED = [
-    (f"{L}/Developer/Xcode/DerivedData", "Xcode 构建中间", "A", "可重建", "删"),
-    (f"{L}/Developer/Xcode/iOS DeviceSupport", "真机符号", "B", "按 iOS 版本一套", "删旧版本"),
-    (f"{L}/Developer/Xcode/Archives", "Xcode 归档", "B", "可能含发布包", "确认后删"),
-    (f"{L}/Developer/CoreSimulator/Caches", "模拟器缓存", "A", "可重建", "删"),
-    (f"{L}/Android/sdk/system-images", "Android 模拟器镜像", "B", "重下代价高", "删不用的 API 级别"),
-    (f"{HOME}/.android/avd", "Android 虚拟设备", "B", "设备数据", "删不用的设备"),
-    (f"{HOME}/.gradle/caches", "Gradle 缓存", "A", "可重下", "删"),
-    (f"{HOME}/.gradle/daemon", "Gradle daemon 日志", "A", "日志", "删"),
-    (f"{HOME}/.m2/repository", "Maven 仓库", "B", "重下慢", "确认后删"),
-    (f"{HOME}/go/pkg/mod", "Go module 缓存", "B", "重下慢", "`go clean -modcache`"),
-    (f"{HOME}/.npm/_cacache", "npm 缓存", "A", "可重下", "`npm cache clean --force`"),
-    (f"{HOME}/.yarn/berry/cache", "Yarn 缓存", "A", "可重下", "`yarn cache clean`"),
-    (f"{HOME}/.bun/install/cache", "Bun 缓存", "A", "可重下", "`bun pm cache rm`"),
-    (f"{L}/Caches/pnpm", "pnpm 下载缓存", "A", "可重下", "删"),
+    (f"{L}/Developer/Xcode/DerivedData", "Xcode build intermediates", "A", "Rebuildable", "Remove"),
+    (f"{L}/Developer/Xcode/iOS DeviceSupport", "Device symbols", "B", "One set per iOS version", "Remove older versions"),
+    (f"{L}/Developer/Xcode/Archives", "Xcode archives", "B", "May contain release builds", "Confirm before removal"),
+    (f"{L}/Developer/CoreSimulator/Caches", "Simulator caches", "A", "Rebuildable", "Remove"),
+    (f"{L}/Android/sdk/system-images", "Android emulator images", "B", "Expensive to download again", "Remove unused API levels"),
+    (f"{HOME}/.android/avd", "Android virtual devices", "B", "Device data", "Remove unused devices"),
+    (f"{HOME}/.gradle/caches", "Gradle cache", "A", "Can be downloaded again", "Remove"),
+    (f"{HOME}/.gradle/daemon", "Gradle daemon logs", "A", "Logs", "Remove"),
+    (f"{HOME}/.m2/repository", "Maven repository", "B", "Slow to download again", "Confirm before removal"),
+    (f"{HOME}/go/pkg/mod", "Go module cache", "B", "Slow to download again", "`go clean -modcache`"),
+    (f"{HOME}/.npm/_cacache", "npm cache", "A", "Can be downloaded again", "`npm cache clean --force`"),
+    (f"{HOME}/.yarn/berry/cache", "Yarn cache", "A", "Can be downloaded again", "`yarn cache clean`"),
+    (f"{HOME}/.bun/install/cache", "Bun cache", "A", "Can be downloaded again", "`bun pm cache rm`"),
+    (f"{L}/Caches/pnpm", "pnpm download cache", "A", "Can be downloaded again", "Remove"),
     # ~/Library/pnpm/store is deliberately absent: du over millions of hardlinks costs ~15 s
     # and the only valid action (`pnpm store prune`) does not depend on knowing its size.
-    (f"{HOME}/.cargo/registry/src", "Cargo 源码解包", "A", "可从 cache/ 重解", "删"),
-    (f"{HOME}/.cargo/git", "Cargo git 依赖", "B", "重 clone", "确认后删"),
-    (f"{HOME}/.cache/uv", "uv 缓存", "B", "重下慢", "`uv cache prune`"),
-    (f"{HOME}/.cache/pip", "pip 缓存", "A", "可重下", "`pip cache purge`"),
-    (f"{HOME}/.cache/huggingface", "HF 模型缓存", "B", "模型重下很慢", "确认后删"),
-    (f"{HOME}/.cache/modelscope", "ModelScope 模型缓存", "B", "模型重下很慢", "确认后删"),
-    (f"{HOME}/.ollama/models", "Ollama 模型", "B", "模型", "`ollama rm`"),
-    (f"{HOME}/.lmstudio", "LM Studio 模型", "B", "模型", "应用内删"),
-    (f"{HOME}/.cache/codex-runtimes", "Codex 运行时", "A", "Codex 自动重下", "删"),
-    (f"{L}/Caches/ms-playwright", "Playwright 浏览器", "A", "`npx playwright install` 重下", "删"),
-    (f"{L}/Caches/Homebrew", "Homebrew 下载", "A", "`brew cleanup` 只删过期瓶，GiB 是整个缓存", "`brew cleanup`"),
-    (f"{L}/Caches/CocoaPods", "CocoaPods 缓存", "A", "可重下", "删"),
-    (f"{L}/Caches/org.swift.swiftpm", "SwiftPM 缓存", "A", "可重下", "删"),
-    (f"{L}/Caches/go-build", "Go 构建缓存", "A", "可重建", "`go clean -cache`"),
-    (f"{L}/Caches/node-gyp", "node-gyp 头文件", "A", "可重下", "删"),
-    (f"{L}/Caches/typescript", "TS 自动类型获取", "A", "可重下", "删"),
-    (f"{L}/Caches/electron", "Electron 二进制", "A", "可重下", "删"),
-    (f"{L}/Caches/electron-builder", "electron-builder 缓存", "A", "可重下", "删"),
-    (f"{L}/Caches/JetBrains", "JetBrains IDE 缓存", "A", "索引可重建", "删（IDE 需关闭）"),
-    (f"{L}/Caches/Codex", "Codex 缓存", "A", "可重建", "删"),
-    (f"{L}/Caches/dotslash", "dotslash 缓存", "A", "可重下", "删"),
-    (f"{L}/Caches/cursor-compile-cache", "Cursor 编译缓存", "A", "可重建", "删"),
-    (f"{L}/Application Support/Code/Cache", "VS Code 缓存", "A", "可重建", "删"),
-    (f"{L}/Application Support/Code/CachedData", "VS Code 缓存", "A", "可重建", "删"),
-    (f"{L}/Application Support/Cursor/Cache", "Cursor 缓存", "A", "可重建", "删"),
-    (f"{L}/Application Support/Cursor/CachedData", "Cursor 缓存", "A", "可重建", "删"),
-    (f"{L}/Application Support/Zed", "Zed 数据", "B", "含语言服务器与扩展", "确认后删子目录"),
-    (f"{L}/Application Support/JetBrains", "JetBrains 配置/插件", "B", "含插件与索引", "只删旧版本目录"),
-    (f"{HOME}/Parallels", "Parallels VM", "B", "整台虚拟机", "在 Parallels 里压缩/迁移"),
+    (f"{HOME}/.cargo/registry/src", "Unpacked Cargo source", "A", "Can be unpacked again from cache/", "Remove"),
+    (f"{HOME}/.cargo/git", "Cargo Git dependencies", "B", "Requires a fresh clone", "Confirm before removal"),
+    (f"{HOME}/.cache/uv", "uv cache", "B", "Slow to download again", "`uv cache prune`"),
+    (f"{HOME}/.cache/pip", "pip cache", "A", "Can be downloaded again", "`pip cache purge`"),
+    (f"{HOME}/.cache/huggingface", "Hugging Face model cache", "B", "Models are slow to download again", "Confirm before removal"),
+    (f"{HOME}/.cache/modelscope", "ModelScope model cache", "B", "Models are slow to download again", "Confirm before removal"),
+    (f"{HOME}/.ollama/models", "Ollama models", "B", "Model files", "`ollama rm`"),
+    (f"{HOME}/.lmstudio", "LM Studio models", "B", "Model files", "Remove in the app"),
+    (f"{HOME}/.cache/codex-runtimes", "Codex runtimes", "A", "Codex downloads these again automatically", "Remove"),
+    (f"{L}/Caches/ms-playwright", "Playwright browsers", "A", "Download again with `npx playwright install`", "Remove"),
+    (f"{L}/Caches/Homebrew", "Homebrew downloads", "A", "`brew cleanup` removes outdated bottles only. The initial size covers the whole cache", "`brew cleanup`"),
+    (f"{L}/Caches/CocoaPods", "CocoaPods cache", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/org.swift.swiftpm", "SwiftPM cache", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/go-build", "Go build cache", "A", "Rebuildable", "`go clean -cache`"),
+    (f"{L}/Caches/node-gyp", "node-gyp headers", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/typescript", "TypeScript automatic type acquisition", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/electron", "Electron binaries", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/electron-builder", "electron-builder cache", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/JetBrains", "JetBrains IDE caches", "A", "Indexes can be rebuilt", "Close the IDE before removal"),
+    (f"{L}/Caches/Codex", "Codex cache", "A", "Rebuildable", "Remove"),
+    (f"{L}/Caches/dotslash", "dotslash cache", "A", "Can be downloaded again", "Remove"),
+    (f"{L}/Caches/cursor-compile-cache", "Cursor compile cache", "A", "Rebuildable", "Remove"),
+    (f"{L}/Application Support/Code/Cache", "VS Code cache", "A", "Rebuildable", "Remove"),
+    (f"{L}/Application Support/Code/CachedData", "VS Code cache", "A", "Rebuildable", "Remove"),
+    (f"{L}/Application Support/Cursor/Cache", "Cursor cache", "A", "Rebuildable", "Remove"),
+    (f"{L}/Application Support/Cursor/CachedData", "Cursor cache", "A", "Rebuildable", "Remove"),
+    (f"{L}/Application Support/Zed", "Zed data", "B", "Contains language servers and extensions", "Confirm before removing subdirectories"),
+    (f"{L}/Application Support/JetBrains", "JetBrains settings and plugins", "B", "Contains plugins and indexes", "Remove only old version directories"),
+    (f"{HOME}/Parallels", "Parallels VM", "B", "Entire virtual machine", "Compact or move in Parallels"),
 ]
 # Paths whose owning tool has a proper cleanup command; None = must be done by hand.
 TOOL_COMMANDS = {
@@ -93,11 +93,11 @@ TOOL_COMMANDS = {
     f"{HOME}/.android/avd": None,
 }
 VERSION_MANAGERS = [
-    (f"{HOME}/.local/share/fnm/node-versions", "Node 版本 (fnm)", ["fnm", "uninstall"]),
-    (f"{HOME}/.nvm/versions/node", "Node 版本 (nvm)", None),  # nvm is a shell function
-    (f"{HOME}/.gvm/gos", "Go 版本 (gvm)", None),
-    (f"{HOME}/.g/versions", "Go 版本 (g)", ["g", "uninstall"]),
-    (f"{HOME}/.pyenv/versions", "Python 版本 (pyenv)", ["pyenv", "uninstall", "-f"]),
+    (f"{HOME}/.local/share/fnm/node-versions", "Node versions (fnm)", ["fnm", "uninstall"]),
+    (f"{HOME}/.nvm/versions/node", "Node versions (nvm)", None),  # nvm is a shell function
+    (f"{HOME}/.gvm/gos", "Go versions (gvm)", None),
+    (f"{HOME}/.g/versions", "Go versions (g)", ["g", "uninstall"]),
+    (f"{HOME}/.pyenv/versions", "Python versions (pyenv)", ["pyenv", "uninstall", "-f"]),
 ]
 AGENT_ROOTS = [f"{HOME}/.codex", f"{HOME}/.claude", f"{HOME}/.cursor", f"{HOME}/.conductor", f"{HOME}/conductor"]
 AGENT_CACHE_NAMES = {"cache", "log", "logs", "shell_snapshots", "debug", "generated_images", "pet-runs"}
@@ -147,12 +147,12 @@ def toolchain_specs():
     default = rustup_default()  # e.g. stable-aarch64-apple-darwin
     for e in entries(f"{HOME}/.rustup/toolchains"):
         if e.name != default:
-            yield (e.path, "Rust toolchain", "B", "非默认 toolchain", "`rustup toolchain uninstall`",
+            yield (e.path, "Rust toolchain", "B", "Non-default toolchain", "`rustup toolchain uninstall`",
                    ["rustup", "toolchain", "uninstall", e.name])
     for root, cat, cmd in VERSION_MANAGERS:
         for e in entries(root):
             if e.is_dir(follow_symlinks=False):
-                yield (e.path, cat, "B", "多版本并存", f"`{cmd[0]} uninstall`" if cmd else "用版本管理器卸载",
+                yield (e.path, cat, "B", "Multiple versions installed", f"`{cmd[0]} uninstall`" if cmd else "Uninstall with the version manager",
                        [*cmd, e.name] if cmd else None)
 
 
@@ -168,16 +168,16 @@ def docker_rows():
             continue  # nothing to act on
         kind, n, active = d.get("Type", ""), d.get("TotalCount"), d.get("Active")
         if kind == "Build Cache":
-            rows.append(Row("docker://build-cache", reclaim, "Docker build cache", "A", f"共 {n} 层",
+            rows.append(Row("docker://build-cache", reclaim, "Docker build cache", "A", f"{n} layers total",
                             "`docker builder prune -af`", command=["docker", "builder", "prune", "-af"]))
         elif kind == "Images":
-            rows.append(Row("docker://images-unused", reclaim, "Docker 未引用镜像", "B", f"{n} 张，{active} 张在用",
+            rows.append(Row("docker://images-unused", reclaim, "Unused Docker images", "B", f"{n} images, {active} in use",
                             "`docker image prune -a`", command=["docker", "image", "prune", "-af"]))
         elif kind == "Containers":
-            rows.append(Row("docker://containers-stopped", reclaim, "Docker 已停止容器", "B", f"{n} 个，{active} 个运行中",
+            rows.append(Row("docker://containers-stopped", reclaim, "Stopped Docker containers", "B", f"{n} containers, {active} running",
                             "`docker container prune`", command=["docker", "container", "prune", "-f"]))
         elif kind == "Local Volumes":
-            rows.append(Row("docker://volumes-unused", reclaim, "Docker 未引用卷", "B", f"{n} 个，{active} 个在用",
+            rows.append(Row("docker://volumes-unused", reclaim, "Unused Docker volumes", "B", f"{n} volumes, {active} in use",
                             "`docker volume prune`", command=["docker", "volume", "prune", "-f"]))
     return rows
 
@@ -192,18 +192,18 @@ def simulator_rows():
     for rt in runtimes.values():
         platform = rt.get("platformIdentifier", "").split(".")[-1].replace("simulator", "")
         rows.append(Row(f"simctl-runtime://{rt['identifier']}", int(rt.get("sizeBytes", 0)) // 1024,
-                        "模拟器 runtime", "B", f"{platform} {rt.get('version')}，{rt.get('state')}",
-                        f"`xcrun simctl runtime delete {rt['identifier']}`（无设备使用时）",
+                        "Simulator runtime", "B", f"{platform} {rt.get('version')}, {rt.get('state')}",
+                        f"`xcrun simctl runtime delete {rt['identifier']}` (when no devices use it)",
                         command=["xcrun", "simctl", "runtime", "delete", rt["identifier"]]))
     devs = [(d, rid) for rid, lst in devices.items() for d in lst if os.path.isdir(d.get("dataPath", ""))]
     sizes = du_many([d["dataPath"] for d, _ in devs])
     for d, rid in devs:
         label = f"{d['name']} / {rid.rsplit('.', 1)[-1]}"
         if d.get("isAvailable", True):
-            rows.append(Row(d["dataPath"], sizes[d["dataPath"]], "模拟器设备", "B", f"{label}，{d.get('state')}",
+            rows.append(Row(d["dataPath"], sizes[d["dataPath"]], "Simulator device", "B", f"{label}, {d.get('state')}",
                             "`xcrun simctl delete <udid>`", command=["xcrun", "simctl", "delete", d["udid"]]))
         else:
-            rows.append(Row(d["dataPath"], sizes[d["dataPath"]], "模拟器设备（孤儿）", "A", f"{label}，runtime 已不存在",
+            rows.append(Row(d["dataPath"], sizes[d["dataPath"]], "Orphan simulator device", "A", f"{label}, runtime no longer installed",
                             "`xcrun simctl delete unavailable`", command=["xcrun", "simctl", "delete", "unavailable"]))
     return rows
 
@@ -212,10 +212,10 @@ def git_dir_spec(path, category, prefix=""):
     dirty = is_git_dirty(path)
     days = mtime_days(path)
     if dirty:
-        return (path, category, "C", f"{prefix}git 有未提交改动，改动于 {days} 天前", "不动")
+        return (path, category, "C", f"{prefix}uncommitted Git changes, modified {days} days ago", "Leave in place")
     if dirty is False:
-        return (path, category, "B", f"{prefix}git 干净，改动于 {days} 天前", "确认分支已合并后删")
-    return (path, category, "B", f"{prefix}改动于 {days} 天前", "确认后删")
+        return (path, category, "B", f"{prefix}clean worktree, modified {days} days ago", "Confirm the branch has merged before removal")
+    return (path, category, "B", f"{prefix}modified {days} days ago", "Confirm before removal")
 
 
 def agent_specs():
@@ -230,15 +230,15 @@ def agent_specs():
                     if wt.is_dir(follow_symlinks=False):
                         yield git_dir_spec(wt.path, "agent worktree")
             elif e.name in AGENT_CACHE_NAMES:
-                yield (e.path, "agent 缓存/日志", "A", label, "删")
+                yield (e.path, "Agent cache/logs", "A", label, "Remove")
             elif e.name in AGENT_BACKUP_NAMES:
                 names = {c.name for c in entries(e.path)}
                 session_copy = any(
                     n in {"sessions", "archived_sessions"} or n.startswith("codex-history-original-backup") or n.endswith(".sqlite")
                     for n in names
                 )
-                note = "，里面有会话备份" if session_copy else "（含历史备份）"
-                yield (e.path, "agent 临时/备份", "B", label + note, "看内容后删")
+                note = ", contains session backups" if session_copy else " (includes history backups)"
+                yield (e.path, "Agent temporary files/backups", "B", label + note, "Inspect contents before removal")
 
 
 def temp_rows(min_kib):
@@ -266,14 +266,14 @@ def temp_specs(root):
             continue
         if not (dev or test_cache or mk):
             continue  # not developer-related; out of scope
-        why = ", ".join(w for w, ok in (("含工程文件", dev), ("测试缓存", test_cache), ("mktemp 后缀", mk)) if ok)
+        why = ", ".join(w for w, ok in (("Contains project files", dev), ("Test cache", test_cache), ("mktemp suffix", mk)) if ok)
         days = mtime_days(e.path)
         if ".git" in names:
-            yield git_dir_spec(e.path, "临时目录", why + "；")
+            yield git_dir_spec(e.path, "Temporary directory", why + ", ")
         elif days is not None and days < 1:
-            yield (e.path, "临时目录", "B", f"{why}，24 小时内改动过", "确认后删")
+            yield (e.path, "Temporary directory", "B", f"{why}, modified within the last 24 hours", "Confirm before removal")
         else:
-            yield (e.path, "临时目录", "A", f"{why}，改动于 {days} 天前", "删")
+            yield (e.path, "Temporary directory", "A", f"{why}, modified {days} days ago", "Remove")
 
 
 def installed_apps():
@@ -328,12 +328,12 @@ def orphan_rows(min_kib):
     """
     ids, teams = installed_apps()
     unknown = []  # (path, bundle_id, label)
-    for root, label in ((f"{L}/Containers", "容器"), (f"{L}/Application Support", "Application Support"), (f"{L}/Caches", "缓存")):
+    for root, label in ((f"{L}/Containers", "Container"), (f"{L}/Application Support", "Application Support"), (f"{L}/Caches", "Cache")):
         for e in entries(root):
             n = e.name
             if UUID_NAME.match(n) or not REVERSE_DNS.match(n) or "com.apple." in n or app_known(n, ids):
                 continue
-            unknown.append((e.path, n, f"{label}，未找到 `{n}` 对应的已安装应用"))
+            unknown.append((e.path, n, f"{label}, no installed app found for `{n}`"))
     for e in entries(f"{L}/Group Containers"):
         m = TEAM_PREFIX.match(e.name)
         if not m or "com.apple." in e.name or m.group(0)[:-1] in teams:
@@ -341,12 +341,12 @@ def orphan_rows(min_kib):
         rest = e.name[len(m.group(0)):]
         rest = rest[6:] if rest.startswith("group.") else rest
         if not app_known(rest, ids):
-            unknown.append((e.path, rest, f"Group Container，团队 `{m.group(0)[:-1]}` 无已安装应用"))
+            unknown.append((e.path, rest, f"Group Container, no installed app for team `{m.group(0)[:-1]}`"))
     sizes = du_many([p for p, _, _ in unknown])
     rows = []
     for path, bid, evidence in unknown:
         if sizes.get(path, 0) >= min_kib and not app_on_disk(bid):
-            rows.append(Row(path, sizes[path], "孤儿应用数据", "B", evidence, "确认应用已卸载后删", command=rm_command(path)))
+            rows.append(Row(path, sizes[path], "Orphan application data", "B", evidence, "Confirm the app is uninstalled before removal", command=rm_command(path)))
     return rows
 
 
@@ -355,7 +355,7 @@ def capacity_line():
     if len(out) < 2:
         return ""
     f = out[1].split()
-    return f"数据卷 {int(f[1]) / 1048576:.0f} GiB，已用 {f[4]}，可用 **{int(f[3]) / 1048576:.1f} GiB**（只读扫描，未删除）"
+    return f"Data volume {int(f[1]) / 1048576:.0f} GiB, {f[4]} used, **{int(f[3]) / 1048576:.1f} GiB** available (read-only scan)"
 
 
 def annotate_tool_reclaim(rows):
@@ -368,11 +368,11 @@ def annotate_tool_reclaim(rows):
         if row.command == ["brew", "cleanup"] and shutil.which("brew"):
             out = run(["brew", "cleanup", "-n"], timeout=180, merge_stderr=True)
             reclaim = parse_reported_free_kib(out) or 0
-            row.evidence += f"（目录 {gib(row.size_kib)} GiB，cleanup 预计收回 {gib(reclaim)} GiB）"
+            row.evidence += f" (directory {gib(row.size_kib)} GiB, cleanup estimates {gib(reclaim)} GiB reclaimable)"
             row.size_kib = reclaim
             row.reclaim_kib = reclaim
         elif row.command[:3] == ["uv", "cache", "prune"]:
-            row.evidence += "（prune 不报告预计回收，目录大小不计入合计）"
+            row.evidence += " (prune provides no estimate, so the directory size is excluded from totals)"
             row.reclaim_kib = 0
     return rows
 

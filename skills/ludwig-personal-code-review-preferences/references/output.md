@@ -1,28 +1,28 @@
 # Review Output
 
-Write every review response in Chinese using UTF-8. Lead with findings and keep the summary secondary.
+Write every review response in Chinese using UTF-8. Lead with findings and keep the summary secondary. Render the headings and examples below in Chinese in the actual report.
 
 ## Finding Shape
 
 ```markdown
-发现
+Findings
 
 High · runtime-contract · contract
-[path/to/file.ts:42] 必填业务字段被 fallback 掩盖
-这里把缺失值转换成空字符串，使无效状态看起来合法。影响是……。建议由 owning schema 强制该字段，并删除调用端 fallback。
+[path/to/file.ts:42] A fallback hides a missing required field
+The caller converts a missing value to an empty string, making invalid state look valid. Explain the impact. Enforce the field in its owning schema and remove the fallback at the call site.
 
 Medium · measured · shrink
-[path/to/file.tsx:88] 交互更新包含已测得的长任务
-在……场景中，trace 显示……。建议……，并用相同方法复测。
+[path/to/file.tsx:88] An interaction produces a measured long task
+Identify the interaction and what its trace shows. Give a correction and repeat the measurement under the same conditions.
 
-偏好建议
-- 仅列没有具体风险、但与稳定个人偏好不一致的选择。
+Preference suggestions
+- Include a choice here when it poses no concrete risk but differs from a stable personal preference.
 
-验证缺口
-- 未运行或未提供的测试、命令、截图、trace、设备或官方契约检查。
+Verification gaps
+- List relevant tests, commands, screenshots, traces, device checks, or official contracts that could not be verified.
 
-总结
-一句话说明整体风险。
+Summary
+State the overall risk in one sentence.
 ```
 
 ## Requirements
@@ -31,7 +31,7 @@ Medium · measured · shrink
 - Include the rule basis: `standard`, `runtime-contract`, `measured`, or `project-rule`.
 - Cite the exact repository instruction or project-owned contract for every `project-rule` label.
 - Distinguish the defect basis from a preferred remedy when they differ.
-- Prefix a remedy supported only by Ludwig's preference with `偏好修复方向` and avoid presenting it as the sole contract-valid solution.
+- Prefix a remedy based only on Ludwig's preference with the Chinese label pronounced *piānhào xiūfù fāngxiàng* (“preferred repair direction”). Acknowledge other remedies that satisfy the contract.
 - Add a complexity tag when useful: `delete`, `reuse`, `platform`, `dependency`, `yagni`, `shrink`, or `contract`.
 - Include a file and line, exact diff/plan/log reference, screenshot area, trace event, or API contract.
 - Explain the problem, concrete impact, and suggested correction or decision path.

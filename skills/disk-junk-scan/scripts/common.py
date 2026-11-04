@@ -51,8 +51,8 @@ def fold_small(rows, min_kib, label):
         groups.setdefault((r.tier, r.category), []).append(r)
     for (tier, category), items in groups.items():
         paths = [r.path for r in items]
-        keep.append(Row(f"{label}/…（{len(items)} 个零散{category}）", sum(r.size_kib for r in items), category, tier,
-                        f"单个都小于 {min_kib // 1024} MiB，合并统计", items[0].action,
+        keep.append(Row(f"{label}/… ({category}, count {len(items)})", sum(r.size_kib for r in items), category, tier,
+                        f"Grouped entries, each below {min_kib // 1024} MiB", items[0].action,
                         command=rm_command(*paths), members=paths, member_kib=[r.size_kib for r in items]))
     return keep
 
@@ -155,7 +155,7 @@ def depth_breakdown(path, keep=5, min_child_kib=100 * 1024):
     children.sort(reverse=True)
     if not children:
         return ""
-    return "构成：" + "，".join(f"{name} {gib(size)} GiB" for size, name in children[:keep])
+    return "Largest children include " + ", ".join(f"{name} {gib(size)} GiB" for size, name in children[:keep])
 
 
 def annotate_breakdown(rows, min_kib=1024 * 1024):
@@ -172,7 +172,7 @@ def annotate_breakdown(rows, min_kib=1024 * 1024):
         notes = list(pool.map(lambda r: depth_breakdown(r.path), chosen))
     for row, note in zip(chosen, notes):
         if note:
-            row.evidence += "；" + note
+            row.evidence += ". " + note
     return rows
 
 
@@ -248,7 +248,7 @@ def dedupe(rows):
                 continue
             r.members, r.member_kib = [p for p, _ in kept], [k for _, k in kept]
             r.size_kib, r.command = sum(r.member_kib), rm_command(*r.members)
-            r.path = re.sub(r"（\d+ 个", f"（{len(kept)} 个", r.path)
+            r.path = re.sub(r", count \d+\)$", f", count {len(kept)})", r.path)
             seen.update(os.path.realpath(p) for p in r.members)
         seen.add(key)
         unique.append(r)
@@ -277,7 +277,7 @@ def dedupe(rows):
             dropped.update(descendants)
         else:
             parent.size_kib = max(original[p] - sum(original[os.path.realpath(c.path)] for c in direct.get(p, [])), 0)
-            parent.evidence += "（不含已单列的子项；命令仍删除整个目录）"
+            parent.evidence += " (size excludes separately listed children, but the command removes the whole directory)"
     return [r for r in unique if os.path.realpath(r.path) not in dropped]
 
 
@@ -290,7 +290,7 @@ def render_table(rows, min_kib, capacity=None):
     if capacity:
         lines.append(capacity)
         lines.append("")
-    lines.append("| # | 路径 | GiB | 类别 | 级 | 依据 | 建议 |")
+    lines.append("| # | Path | GiB | Category | Tier | Evidence | Action |")
     lines.append("|---:|---|---:|---|:-:|---|---|")
     for r in shown:
         path = r.path.replace(HOME, "~")
@@ -301,7 +301,7 @@ def render_table(rows, min_kib, capacity=None):
         totals[r.tier] = totals.get(r.tier, 0) + counted_kib(r)
     summary = "  ".join(f"{t}: {gib(totals.get(t, 0))} GiB" for t in ("A", "B", "C"))
     if partial:
-        summary += "（按可回收量，不是目录大小）"
+        summary += " (totals use reclaimable space)"
     lines.append("")
-    lines.append(f"合计 {summary}" + (f"（{len(hidden)} 条 < {min_kib // 1024} MiB 未列出，共 {gib(sum(counted_kib(r) for r in hidden))} GiB）" if hidden else ""))
+    lines.append(f"Totals {summary}" + (f" ({len(hidden)} rows below {min_kib // 1024} MiB omitted, totaling {gib(sum(counted_kib(r) for r in hidden))} GiB)" if hidden else ""))
     return "\n".join(lines)

@@ -74,7 +74,7 @@ def main():
         print(payload)
         return
     header = scan_machine.capacity_line()
-    header += f"  扫描仓库 {len(repos)} 个（`{args.repos_root.replace(HOME, '~')}`）"
+    header += f"  Repositories scanned under `{args.repos_root.replace(HOME, '~')}`: {len(repos)}"
     print(render_table(rows, min_kib, header))
 
 

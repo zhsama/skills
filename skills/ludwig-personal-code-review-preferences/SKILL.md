@@ -1,6 +1,6 @@
 ---
 name: ludwig-personal-code-review-preferences
-description: "按 Ludwig 的工程偏好审查 TypeScript 生态的代码、diff、PR、方案、架构、依赖、性能、测试和工具链，或在明确要求时保持行为不变地简化。用于用户要求 review、simplify 或 clean-up 时。默认只读；只有明确要求简化、清理、修复或实现时才改代码。"
+description: "Review TypeScript ecosystem code, diffs, PRs, plans, architecture, dependencies, performance, tests, and tooling using Ludwig's engineering preferences. Use for review, simplification, or cleanup requests. Reviews are read-only by default. Apply changes only when the user explicitly asks to simplify, clean up, fix, or implement the target."
 ---
 
 # Ludwig Review

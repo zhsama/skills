@@ -1,33 +1,33 @@
 # Simplification Output
 
-Write every simplification response in Chinese using UTF-8. Lead with the applied or proposed result.
+Write every simplification response in Chinese using UTF-8. Lead with the applied or proposed result. Render the headings and examples below in Chinese in the actual report.
 
 ## Shape
 
 ```markdown
-已简化
+Simplified
 
-- `path/to/file.ts:42` · shrink — 删除重复状态和同步分支。移除了……；行为等价依据是……。
+- `path/to/file.ts:42` · shrink — Removed duplicate state and the branch that synchronized it. Describe what was removed and the evidence that behavior is equivalent.
 
-跳过
+Skipped
 
-- `path/to/file.ts:88` · contract — 需要改变错误语义，已转为 review 候选。
+- `path/to/file.ts:88` · contract — This requires a change in error semantics. Track it as a review candidate.
 
-意外发现的正确性风险
+Incidental correctness risks
 
-- 仅列 discovery 中偶然发现且未在 simplify 模式修改的问题。
+- Include only findings discovered incidentally and left unchanged during simplification.
 
-验证
+Validation
 
-- `exact command`：通过/失败及必要摘要。
+- `exact command` — Give the observed outcome and a short explanation where needed.
 
-验证缺口
+Verification gaps
 
-- 未运行或无法观察的测试、平台、截图、trace 或契约检查。
+- List tests, platforms, screenshots, traces, or contracts that were not checked or could not be observed.
 
-总结
+Summary
 
-一句话说明减少了哪些 owned complexity，以及剩余风险。
+Describe the reduction in owned complexity and any residual risk in one sentence.
 ```
 
 ## Requirements
