@@ -1,4 +1,4 @@
 interface:
   display_name: "Issue Review Workflow"
-  short_description: "分轮核实问题、评审方案和修复，由用户确认问题清单和实施范围"
-  default_prompt: "使用 $issue-review-workflow 核实给定的问题，独立复查后把问题清单交给我确认。"
+  short_description: "Verify issues and review fixes with two user approvals"
+  default_prompt: "Use $issue-review-workflow to verify the reported issues, have fresh reviewers recheck them, and bring me the findings to confirm."

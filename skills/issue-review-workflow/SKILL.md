@@ -1,32 +1,32 @@
 ---
 name: issue-review-workflow
-description: "用于分轮核实并处理 GitHub milestone、issue 或一组审计发现。总控分派独立子代理核实问题、复查判断、评审方案和最终代码。先由用户确认问题清单，再由用户批准修复方案和范围。也可只运行到问题确认。"
+description: "Coordinate independent subagent reviews of a GitHub milestone, issue, or set of audit findings. Stop for the user to confirm the findings before designing fixes and to approve the reviewed plan and scope before implementation. Also supports verification-only requests."
 compatibility: "Requires a runtime that can start independent subagents with fresh contexts and access the target revision and its evidence."
 ---
 
 # Issue Review Workflow
 
-总控负责拆题、核对证据、设计方案、实施和验收。初查与评审均只读，运行验证使用隔离夹具。默认在对话中保留判断和旁支。续跑时核对目标版本与上次确认的范围，只对发生实质变化的部分重新评审。
+The lead agent divides the work, weighs evidence, designs and implements approved fixes, and verifies the result. Keep investigations and reviews read-only. Run probes in isolated fixtures. Keep interim judgments and side findings in the conversation by default. When resuming, check the target revision and the last confirmed scope. Revisit only what has materially changed.
 
-## 派工和 skill 选择
+## Delegation and skill selection
 
-- 每一轮新建子代理。在 Codex 使用 `fork_turns: "none"`，任务包给出对象、版本、原始材料、审查方向、权限和所需证据。同组独立交卷后再汇总。若运行环境无法创建独立上下文，向用户说明停在哪个节点。
-- 按 skill 的 `description` 筛出适用于本节点的候选，给同一节点的子代理相同的名称、描述和读取位置。总控分派审查方向，例如分别看结构与抽象、文件与函数职责、行为回归。每个子代理根据描述中的适用场景，自行决定是否读取、组合哪些 skill。
+- Start each round with fresh subagents. In Codex, use `fork_turns: "none"`. Give each agent the target, revision, original materials, assigned question, allowed actions, and expected evidence. Collect independent submissions before sharing conclusions. If fresh contexts are unavailable, tell the user which stage is blocked.
+- Use each skill's `description` to identify candidates for the current stage. Give every subagent in that stage the same candidate names, descriptions, and locations. The lead assigns areas of responsibility, such as architecture and abstractions, file and function responsibilities, or behavioral regressions. Each subagent decides which skills, if any, to read or combine.
 
-## 核实问题
+## Verify the issues
 
-1. 总控列全原始问题，固定目标版本，按实际调用链分派初查。子代理查规范、调用者、源码和测试，尽量用最小场景复现并找反例。说明影响谁、触发条件、已测结果和证据缺口，区分现行契约与期望的设计变更。
-2. 收齐初查结果，总控先形成自己的逐项判断。再开新上下文复核，只发原题、目标版本与原始材料。收到复核者的独立初判后，才发首轮证据及总控汇总，请其核查事实、遗漏和过度推断。分歧回到原始证据裁决。
-3. **等待用户确认问题清单。** 向用户逐项列出成立、不成立和证据不足的部分，附依据和影响，区分本轮实测、源码推断和原作者报告。等用户确认理解是否准确、哪些项进入设计。有异议的项先补证。若用户只要求核实，到此交付。
+1. List every original claim, pin the target revision, and divide the initial investigation along actual call paths. Investigators check the contract, callers, source, and tests. Seek a minimal reproduction and a counterexample. Identify affected users, triggering conditions, observations, and evidence gaps. Distinguish current behavior from a requested policy change.
+2. After all investigations report, the lead makes a judgment on each claim. Start a new review team with only the original questions, revision, and source materials. Wait for its independent judgments before sharing the first round's evidence and the lead's summary. Ask the reviewers to challenge omissions, incorrect claims, and overstated conclusions. Resolve disagreements against the underlying evidence.
+3. **Stop for the user to confirm the findings.** Report which claims are supported, contradicted, or still lack evidence. Include the impact and distinguish what was reproduced, inferred from source, or reported by the original author. Wait for the user to confirm the list and choose which items enter design. Gather more evidence for disputed items. Verification-only requests end here.
 
-## 设计与批准
+## Design and approval
 
-1. 总控只为用户选中的问题设计方案，列明本轮纳入与排除的行为、受影响的调用方和可观察的验收条件。
-2. 将同一版方案交给多名新上下文的子代理，从不同方向独立评审，例如契约与权限、失败与重试、验证方法和复杂度。总控核对依据，有实质异议就修订并复审。
-3. **等待用户批准方案。** 把评审后的最终方案、修复范围和验收条件交给用户。只有用户明确批准这份方案后才锁定范围、开始修改。
+1. The lead designs fixes only for the items the user chose. State which behaviors are in and out of scope, which callers are affected, and how to verify success.
+2. Give the same plan to multiple fresh subagents for independent review from different angles, such as authorization, failure and retry behavior, testability, and complexity. Check the evidence behind objections. Revise and re-review the plan when an objection changes it materially.
+3. **Stop for the user to approve implementation.** Present the reviewed plan, repair scope, and acceptance criteria. Lock the scope and start making changes only after the user explicitly approves that plan.
 
-## 修复、复审与交付
+## Implementation, review, and handoff
 
-1. 总控按锁定范围实施和自验。遇到范围外的问题，暂记发现位置、影响和已知因果链，留到交付时讨论。如果它阻塞已批准的验收，暂停受影响的部分并告知用户。有必要扩大范围时，变更后的方案重新评审并由用户批准。
-2. 在最终版本上，把完整 diff、已批范围和原失败用例交给多名独立于实现者的新子代理。分方向核实修复是否真正通过、相邻行为是否回归、结构与函数是否足够简单清楚。总控核对原始结果，范围内的失败返工，再用最新 diff 和同一场景复审。
-3. 一起交付已修项、对应的验收证据、未能验证的部分，以及暂存的旁支。对接连引出的新问题标明证实到哪一环，交给用户决定下一轮追哪些。
+1. Implement and test the approved changes. When an unrelated problem appears, record its location, impact, and known causal links for the handoff. If it blocks an approved acceptance criterion, pause the affected work and tell the user. Any necessary expansion of scope goes through plan review and user approval again.
+2. Give multiple fresh reviewers who did not implement the fix the complete final diff, approved scope, and original failing scenarios. Divide the review across correctness, regressions in related behavior, and the clarity and simplicity of the code. The lead checks the raw results. Rework in-scope failures and repeat the review against the latest diff and the same scenarios.
+3. Deliver the fixes, their acceptance evidence, outstanding verification gaps, and deferred findings together. For chains of new issues, distinguish established links from speculation. Let the user choose what to pursue next.

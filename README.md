@@ -8,7 +8,7 @@
 | [codex-downgrade](skills/codex-downgrade/SKILL.md) | Codex 数据与服务专用；需要 Python 3.11+ 和本地 Codex 数据。 | 检查 Codex 实际服务的模型是否低于所选模型。 |
 | [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | macOS；需要 Python 3 标准库。默认只读，清理须另行授权。 | 扫描可回收的开发与 agent 磁盘占用，并按风险分级。 |
 | [issue-brief](skills/issue-brief/SKILL.md) | 通用流程；需要 GitHub 访问、代码阅读和复现能力。 | 按最近发展区挑选进阶开源问题，复现并讲清原理与修复方向。 |
-| [issue-review-workflow](skills/issue-review-workflow/SKILL.md) | 需要能创建独立上下文子代理的运行环境。 | 分轮核实问题、评审方案和代码，由用户确认问题清单并批准修复范围。 |
+| [issue-review-workflow](skills/issue-review-workflow/SKILL.md) | Requires independent subagents with fresh contexts. | Verify issues, review plans and fixes, and stop for user approval of the findings and repair scope. |
 | [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | 通用流程；需要目标代码和项目工具链，子代理不可用时可顺序执行。 | 按 Ludwig 偏好审查或等价简化 TypeScript 代码。 |
 | [luna-max-subagents](skills/luna-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-5.6-luna` 和 `max` 的子代理运行环境。 | 委派 Luna Max 子代理并由主 agent 汇总。未指定数量时默认 3 个，主 agent 也可自行决定。 |
 | [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | 需要支持指定派发参数、`gpt-6.1-sol` 和 `max` 的子代理运行环境。 | 委派 Sol Max 子代理并由主 agent 汇总。未指定数量时默认 3 个，主 agent 也可自行决定。 |
@@ -36,7 +36,7 @@ npx skills@latest add zhsama/skills --global --agent codex \
   --skill issue-brief --skill ludwig-personal-code-review-preferences
 ```
 
-### Issue 审查工作流
+### Issue review workflow
 
 ```sh
 npx skills@latest add zhsama/skills --global --agent codex --skill issue-review-workflow
@@ -95,7 +95,7 @@ $codex-downgrade 审计最近的 Codex session，看实际服务的模型是不�
 $disk-junk-scan 扫描可回收的开发磁盘占用，先给表，不要删除任何东西
 $issue-brief 依据我的近期贡献选择一个聚焦单一主要能力提升的 issue
 $issue-brief https://github.com/owner/repo/issues/123
-$issue-review-workflow 核实 <milestone 链接> 的全部 issue，独立复查后把问题清单交给我确认
+$issue-review-workflow Verify every issue in <milestone URL>, independently recheck the findings, and bring me the list to confirm.
 $ludwig-personal-code-review-preferences 审查当前目标
 $luna-max-subagents 分别检查 API 和测试，最后汇总结果
 $sol-max-subagents 分别检查 API 和测试，最后汇总结果
