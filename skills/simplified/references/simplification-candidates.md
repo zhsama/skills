@@ -2,20 +2,13 @@
 
 Use this checklist to inspect the requested diff or code. State the change's purpose and the behavior to preserve first. For each relevant piece, consider removing, inlining, or merging it and identify what would concretely break. A written checklist is not required for a small change.
 
-## Candidate Inventory
+## Contract and Ownership
 
-| Piece | Simpler form to consider | Reason to retain it |
-| --- | --- | --- |
-| Helper or wrapper | Inline or call the underlying API directly | It names a meaningful step, owns an invariant, or isolates a real volatile boundary. One caller alone does not disqualify it. |
-| Parameter, option, or generic | Use the actual invariant or an existing type | A real caller, public contract, or supported variation needs it. |
-| State, flag, or cache | Derive from the authoritative value | Independent identity, lifecycle, or measured work justifies storage. |
-| Branch, guard, or recovery path | Remove an unreachable or redundant path | A reachable input or failure needs it. Static types alone do not validate external input. |
-| File or module | Colocate with its owner or combine one responsibility | A distinct runtime, lifecycle, public contract, or cohesive responsibility justifies the boundary. |
-| Dependency or custom utility | Reuse the platform or an existing maintained capability | It owns real edge cases or reduces total complexity. Do not hand-roll parsing, networking, or native behavior to shrink a manifest. |
-| Repeated logic | Share the stable semantic rule | Similar syntax with different contracts or owners should remain separate. There is no fixed repetition threshold. |
-| Comment or documentation | Delete narration and stale explanation | It records a non-obvious reason, invariant, external quirk, or required public contract. |
-| Test | Remove redundant implementation assertions | It protects an observable regression or contract not otherwise checked. Passing remaining tests does not prove equivalent coverage. |
-| Unrelated change | Leave it out of the proposed cleanup | Preserve unrelated user work; do not revert their edits merely to make the diff smaller. |
+Begin with the behavior's owner and its real consumers. Identify which part of the proposed cleanup would reduce a maintenance obligation: keeping two representations synchronized, tracing a value through forwarding layers, or coordinating a rule across unrelated owners. A candidate needs a concrete explanation of that reduction and the behavior that must remain observable.
+
+Check the candidate against zhsama's existing standards. Keep meaningful domain names and responsibility boundaries even when they have one caller. Share logic when consumers depend on the same rule; similar syntax and a repetition count do not establish that relationship. Preserve options, state, and generic types that actual consumers need, and question those added only for hypothetical uses.
+
+Follow inputs and failure paths before removing checks. A TypeScript annotation does not establish trust at an external boundary. Prefer existing platform or package capabilities for parsing, networking, and native integration; count the obligations a replacement would introduce, not just the dependency it would remove. Assess tests by the regression they detect, and preserve unrelated work outside the authorized cleanup.
 
 ## Source Organization
 

@@ -123,6 +123,12 @@ $sol-max-subagents Review the API and tests separately, then summarize the resul
 npx skills@latest update ablation-experiment codex-downgrade disk-junk-scan git-workflow issue-brief issue-review-workflow node-modules-inspector project-init simplified sol-max-subagents
 ```
 
+## Acknowledgments
+
+Parts of `project-init`, `git-workflow`, and `simplified` were informed by [Anthony Fu's agent skills](https://github.com/antfu/skills), particularly his approaches to project setup, issue triage, PR communication, and code simplification. These ideas helped refine skills written for zhsama's tooling, engineering preferences, and authorization rules. Specific references are recorded in [PROVENANCE.md](PROVENANCE.md).
+
+`node-modules-inspector` is a separate adaptation of its upstream skill and retains the upstream MIT license in its directory.
+
 ## Maintenance and validation
 
 Maintain each skill under `skills/<skill-name>/`, including every file it references. Write skill instructions, descriptions, references, prompts, examples, and tool messages in English. Preserve any explicit preference for the language used to answer the user.
