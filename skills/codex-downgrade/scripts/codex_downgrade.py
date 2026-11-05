@@ -135,14 +135,16 @@ def cleanup_temp_copies() -> None:
 # ---------------------------------------------------------------------------
 # Model identity
 # ---------------------------------------------------------------------------
-# Ranking of OpenAI first-party coding slugs. A convenience, never the source of
-# truth: anything missing is treated as unrecorded, never as fine. README.md
-# explains the full resolution order.
+# Product tiers used by this audit. Revisions of the same named tier share a rank.
 MODEL_TIERS: Dict[str, int] = {
     "gpt-6-astra": 100,
+    "gpt-6.1-sol": 90,
+    "gpt-6-sol": 90,
     "gpt-5.6-sol": 90,
     "gpt-5.5": 70,
+    "gpt-6.1-terra": 65,
     "gpt-5.6-terra": 65,
+    "gpt-6-luna": 40,
     "gpt-5.6-luna": 40,
     "gpt-5.4": 38,
     "gpt-5.4-mini": 25,
@@ -170,6 +172,7 @@ LARGE_MODEL_MARKERS = frozenset({
 # "5.6" -> (5, 6); "4o" -> (4,) plus a trailing variant token "o".
 _VERSION_TOKEN = re.compile(r"^v?(\d+(?:\.\d+)*)([a-z]*)$")
 _SLUG_SPLIT = re.compile(r"[-_/:\s]+")
+_SERVER_SUFFIX = re.compile(r"[-_](?:\d{4}-\d{2}-\d{2}|codex-abuse-1p)$")
 
 # Response headers Codex itself reads. Captured verbatim when present.
 HEADERS_OF_INTEREST: Tuple[str, ...] = (
@@ -204,6 +207,8 @@ LEVEL_RANK = {"ok": 0, "info": 0, "warn": 1, "critical": 2}
 # apart from capacity failures: being refused is not being silently swapped.
 PROOF_CODES = frozenset({
     "MODEL_DOWNGRADED",
+    "MODEL_UPGRADED",
+    "MODEL_SAME_TIER",
     "MODEL_MISMATCH",
     "VENDOR_MISMATCH",
     "REROUTE_EVENT_IN_ROLLOUT",
@@ -211,7 +216,6 @@ PROOF_CODES = frozenset({
     "LOG_SERVER_MODEL_MISMATCH",
     "LOG_PROVIDER_FALLBACK",
     "LOG_MODEL_REROUTE_EVENT",
-    "SAFETY_BUFFERING_APPLIED",
     "MODEL_UNRECOGNIZED",
 })
 
@@ -256,8 +260,10 @@ class Report:
     @property
     def verdict(self) -> Tuple[str, int]:
         codes = {f.code for f in self.findings}
+        if "MODEL_DOWNGRADED" in codes:
+            return "LOWER MODEL TIER DETECTED", 3
         if codes & PROOF_CODES:
-            return "DOWNGRADE / REROUTE DETECTED", 3
+            return "MODEL CHANGE OR REROUTE DETECTED", 3
         critical = {f.code for f in self.findings if f.level == "critical"}
         if critical - INCONCLUSIVE_CODES:
             return "MODEL UNAVAILABLE OR QUOTA EXHAUSTED", 3
@@ -372,9 +378,7 @@ class ModelIdentity:
 
 
 class ModelRegistry:
-    """Resolves 'what is this slug?' from the rank tables, then the model
-    catalog Codex caches on disk, then structural inference from the slug text,
-    so an unrecorded model is judged rather than waved through."""
+    """Use the catalog for identity metadata and explicit ranks for tier comparisons."""
 
     def __init__(self) -> None:
         self.tiers: Dict[str, int] = dict(MODEL_TIERS)
@@ -384,7 +388,6 @@ class ModelRegistry:
         self.catalog_meta: Dict[str, Any] = {}
         self.notes: List[Tuple[str, str, str]] = []
         self._cache: Dict[str, ModelIdentity] = {}
-        self._recorded: Optional[List[str]] = None
 
     # -- construction --------------------------------------------------------
     @classmethod
@@ -409,9 +412,9 @@ class ModelRegistry:
             reg.notes.append((
                 "info", "NO_MODEL_CATALOG",
                 "No model catalog was loaded (looked at: %s). Slug recognition falls back "
-                "to the built-in table plus structural inference, so a brand-new model is "
-                "judged more coarsely. Point --model-catalog at a models_cache.json to "
-                "widen it." % (", ".join(str(p) for p in candidates) or "nowhere")))
+                "to the built-in table. Use --model-catalog to supply catalog metadata "
+                "or --tier-map to rank additional models."
+                % (", ".join(str(p) for p in candidates) or "nowhere")))
         if tier_map_path:
             reg._load_tier_map(Path(tier_map_path).expanduser())
         return reg
@@ -459,33 +462,27 @@ class ModelRegistry:
             return
         for slug, rank in raw.items():
             try:
-                self.user_tiers[str(slug).strip().lower()] = int(rank)
-            except (TypeError, ValueError):
-                continue
-        self._recorded = None
+                self.user_tiers[slug.strip().lower()] = int(str(rank))
+            except ValueError:
+                self.notes.append(("warn", "TIER_MAP_INVALID_RANK",
+                                   "Ignoring non-integer rank for '%s' in %s." % (slug, path)))
+        self._cache.clear()
         self.notes.append(("info", "TIER_MAP_LOADED",
                            "Loaded %d custom model rank(s) from %s."
                            % (len(self.user_tiers), path)))
 
     # -- lookup --------------------------------------------------------------
-    def recorded_slugs(self) -> List[str]:
-        if self._recorded is None:
-            merged = set(self.tiers) | set(self.user_tiers) | set(self.catalog)
-            self._recorded = sorted(merged, key=len, reverse=True)
-        return self._recorded
-
     def _match_recorded(self, key: str) -> Optional[Tuple[str, str]]:
-        """Exact match first, then longest recorded prefix, so a server-side
-        suffix like 'gpt-5.6-sol-codex-abuse-1p' still resolves to its base."""
-        if key in self.user_tiers:
-            return key, "tier-table"
-        if key in self.catalog:
-            return key, "catalog"
-        if key in self.tiers:
-            return key, "tier-table"
-        for base in self.recorded_slugs():
-            if key.startswith(base) and len(key) > len(base) and key[len(base)] in "-_":
-                return base, ("catalog" if base in self.catalog else "tier-table")
+        """Only dated snapshots and the known routing suffix inherit a base tier."""
+        bases = (key, _SERVER_SUFFIX.sub("", key))
+        for base in bases:
+            if base in self.user_tiers:
+                return base, "tier-table"
+            if base in self.tiers:
+                return base, "catalog" if base in self.catalog else "tier-table"
+        for base in bases:
+            if base in self.catalog:
+                return base, "catalog"
         return None
 
     def identify(self, slug: Optional[str]) -> Optional[ModelIdentity]:
@@ -608,9 +605,7 @@ def default_codex_home() -> Path:
 def judge_served_model(report: Report, requested: str, served: Optional[str],
                        evidence: Any = None, status: Optional[int] = None,
                        registry: Optional[ModelRegistry] = None) -> None:
-    """Compare the model you asked for against the model the server says it
-    used. When no table ranks either side the slugs are compared structurally,
-    so the tool still commits to a direction instead of shrugging."""
+    """Report the observed identity change. Compare tiers only when both are ranked."""
     if not served and status is not None and status >= 400:
         report.add(
             "info", "NO_SERVED_MODEL_HTTP_ERROR",
@@ -637,8 +632,7 @@ def judge_served_model(report: Report, requested: str, served: Optional[str],
     if rid is not None and not rid.known:
         report.add(
             "info", "REQUESTED_MODEL_UNRECORDED",
-            "Requested model '%s' is ranked nowhere local (%s), so the comparison "
-            "below leans on slug structure. Rank it with --tier-map for an exact verdict."
+            "Requested model '%s' has no local rank (%s). Supply --tier-map to rank it."
             % (requested, rid.describe()))
 
     if served.strip().lower() == requested.strip().lower():
@@ -653,10 +647,7 @@ def judge_served_model(report: Report, requested: str, served: Optional[str],
         return
 
     # --- same model, server-side variant ---------------------------------
-    rlow, slow = requested.strip().lower(), served.strip().lower()
-    shared_base = bool(rid and sid and rid.base and sid.base and rid.base == sid.base)
-    prefix_variant = slow.startswith(rlow + "-") or rlow.startswith(slow + "-")
-    if shared_base or prefix_variant:
+    if rid and sid and rid.base and rid.base == sid.base:
         report.add(
             "warn", "MODEL_VARIANT",
             "Server reported '%s' while you requested '%s': the same base model with a "
@@ -668,8 +659,8 @@ def judge_served_model(report: Report, requested: str, served: Optional[str],
     if sid is not None and not sid.known and not sid.version and not sid.variant:
         report.add(
             "critical", "MODEL_UNRECOGNIZED",
-            "Requested '%s' but the server served '%s', a slug that is ranked nowhere, "
-            "catalogued nowhere, and does not parse as a model name." % (requested, served),
+            "Requested '%s' but the server reported the unrecognized slug '%s'. "
+            "Its tier is unknown." % (requested, served),
             evidence)
         return
 
@@ -683,82 +674,24 @@ def judge_served_model(report: Report, requested: str, served: Optional[str],
             evidence)
         return
 
-    # --- both sides ranked ------------------------------------------------
     rtier = rid.tier if rid else None
     stier = sid.tier if sid else None
-    if rtier is not None and stier is not None and rtier != stier:
-        if stier < rtier:
-            report.add(
-                "critical", "MODEL_DOWNGRADED",
-                "Requested '%s' (rank %d) but the server served '%s' (rank %d). "
-                "This is a confirmed downgrade." % (requested, rtier, served, stier),
-                evidence)
-        else:
-            report.add(
-                "warn", "MODEL_UPGRADED",
-                "Requested '%s' but the server served '%s', a higher-ranked model. "
-                "Unexpected, but not a downgrade." % (requested, served),
-                evidence)
-        return
-
-    # --- nothing is ranked, so infer a direction from the slugs -----------
-    # Same leading family token, e.g. both 'gpt'. Comparing generations across
-    # unrelated families would be meaningless.
-    same_family = bool(rid and sid and rid.family and rid.family == sid.family)
-
-    if same_family and rid.version and sid.version and rid.version != sid.version:
-        older = sid.version < rid.version
+    if rtier is None or stier is None:
         report.add(
-            "critical" if older else "warn",
-            "MODEL_DOWNGRADED" if older else "MODEL_UPGRADED",
-            "Requested '%s' but the server served '%s'. Neither slug is ranked here, but "
-            "they belong to the same model family and the served generation is %s "
-            "(v%s against v%s)."
-            % (requested, served, "older" if older else "newer",
-               sid.version_str(), rid.version_str()),
-            evidence)
+            "critical", "MODEL_MISMATCH",
+            "Requested '%s' but the server served '%s'. Tier direction is unknown. "
+            "Supply missing ranks with --tier-map." % (requested, served), evidence)
         return
 
-    if same_family and sid.size_marker and not rid.size_marker:
-        report.add(
-            "critical", "MODEL_DOWNGRADED",
-            "Requested '%s' but the server served '%s'. '%s' marks the smaller, cheaper "
-            "sibling in this family, so this is a downgrade even though neither slug is "
-            "ranked here." % (requested, served, sid.size_marker),
-            evidence)
-        return
-
-    if same_family and rid.size_marker and sid.large_marker:
-        report.add(
-            "warn", "MODEL_UPGRADED",
-            "Requested '%s' but the server served '%s', which carries the larger-sibling "
-            "marker '%s'. Unexpected, but not a downgrade."
-            % (requested, served, sid.large_marker),
-            evidence)
-        return
-
-    rpri = rid.catalog_priority if rid else None
-    spri = sid.catalog_priority if sid else None
-    if same_family and rpri is not None and spri is not None and rpri != spri:
-        worse = spri > rpri
-        report.add(
-            "critical" if worse else "warn",
-            "MODEL_DOWNGRADED" if worse else "MODEL_UPGRADED",
-            "Requested '%s' but the server served '%s'. Neither slug is ranked here; your "
-            "own model catalog orders them at priority %d and %d, so the served model sits "
-            "%s in the same line-up."
-            % (requested, served, rpri, spri, "lower" if worse else "higher"),
-            evidence)
-        return
-
-    report.add(
-        "critical", "MODEL_MISMATCH",
-        "Requested '%s' but the server served '%s'. Direction unknown (%s against %s); "
-        "rank both slugs with --tier-map for a downgrade or upgrade verdict."
-        % (requested, served,
-           rid.describe() if rid else "unknown",
-           sid.describe() if sid else "unknown"),
-        evidence)
+    if stier < rtier:
+        level, code, direction = "critical", "MODEL_DOWNGRADED", "lower"
+    elif stier > rtier:
+        level, code, direction = "warn", "MODEL_UPGRADED", "higher"
+    else:
+        level, code, direction = "warn", "MODEL_SAME_TIER", "same"
+    report.add(level, code,
+               "Requested '%s' (rank %d) but the server served '%s' (rank %d). "
+               "Serving tier: %s." % (requested, rtier, served, stier, direction), evidence)
 
 
 def judge_headers(report: Report, headers: Dict[str, str]) -> None:
@@ -996,7 +929,7 @@ def parse_rollout(path: Path) -> Dict[str, Any]:
 
     return {
         "file": str(path),
-        "session_id": meta.get("session_id"),
+        "session_id": meta.get("id") or meta.get("session_id"),
         "cli_version": meta.get("cli_version"),
         "originator": meta.get("originator"),
         "session_provider": meta.get("model_provider"),
@@ -1320,10 +1253,19 @@ def method_session(args: argparse.Namespace) -> Report:
     for s in parsed:
         sid = s["session_id"] or "(unknown)"
 
-        if s["reroute_events"]:
+        for event in s["reroute_events"]:
+            if event.get("type") == "safety_buffering":
+                report.add("warn", "SAFETY_BUFFERING_APPLIED",
+                           "Session %s reported safety buffering." % sid, event)
+                continue
             report.add("critical", "REROUTE_EVENT_IN_ROLLOUT",
-                       "Session %s recorded a model reroute or safety-buffering event." % sid,
-                       s["reroute_events"])
+                       "Session %s recorded a model reroute." % sid, event)
+            source, target = event.get("from_model"), event.get("to_model")
+            if isinstance(source, str) and source and isinstance(target, str) and target:
+                comparison = Report("session", requested_model=source)
+                judge_served_model(comparison, source, target,
+                                   {"session_id": sid, "event": event}, registry=registry)
+                report.findings.extend(comparison.findings)
 
         fams = [f for f in s["backend_families"] if f != "unknown"]
         if len(fams) > 1:
@@ -1387,10 +1329,8 @@ def method_session(args: argparse.Namespace) -> Report:
         scan_logs(codex_home, args.log_hours, report)
     else:
         report.add("warn", "LOGSCAN_SKIPPED",
-                   "The log database was not scanned. Reroute and safety-buffering are "
-                   "transient events that the client never writes to a rollout, so that "
-                   "database is their only durable record. Skipping it discards the one "
-                   "local source that can prove a reroute happened.")
+                   "The log database was not scanned. Routing evidence available only in "
+                   "that database was not checked.")
 
     return report
 
@@ -1724,9 +1664,9 @@ def probe_responses(url: str, headers: Dict[str, str], model: str, prompt: str,
                    "The probe needed %d attempts before settling." % len(attempts), attempts)
 
     if result.get("safety_buffering"):
-        report.add("critical", "SAFETY_BUFFERING_APPLIED",
-                   "The stream carried a safety_buffering payload, meaning this turn was "
-                   "actually routed through the fallback path.", result["safety_buffering"])
+        report.add("warn", "SAFETY_BUFFERING_APPLIED",
+                   "The stream reported safety buffering. Use the serving model or an "
+                   "explicit reroute event to identify a model change.", result["safety_buffering"])
     if result.get("engine_ids"):
         unique = sorted(set(result["engine_ids"]))
         report.add("info", "ENGINE_IDS",
@@ -2029,11 +1969,11 @@ EPILOG = """
 examples
   python codex_downgrade.py session  --session-id 0199c2f4-1a2b-7c3d-8e4f-5a6b7c8d9e0f
   python codex_downgrade.py session  --sessions 10 --json
-  python codex_downgrade.py official --model gpt-5.6-sol --redact
-  python codex_downgrade.py official --model gpt-5.7-sol --tier-map ranks.json
+  python codex_downgrade.py official --model gpt-6-astra --redact
+  python codex_downgrade.py official --model gpt-6.1-sol --tier-map ranks.json
 
 exit codes
-  0 clean   2 at risk or incomplete   3 downgrade or unavailable   1 tool error
+  0 clean   2 at risk or incomplete   3 model changed, rerouted or unavailable   1 tool error
 
 README.md documents every parameter, every finding code, and where each signal
 comes from.
@@ -2059,7 +1999,7 @@ def _model_source_flags() -> argparse.ArgumentParser:
                         "path in config.toml, else $CODEX_HOME/models_cache.json.")
     m.add_argument("--tier-map", default=None, metavar="PATH",
                    help="JSON object mapping model slug to integer rank, higher "
-                        "meaning more capable. Extends the built-in ranking.")
+                        "meaning a higher audit tier. Overrides built-in ranks.")
     return m
 
 

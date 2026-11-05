@@ -26,3 +26,5 @@ jobs:
         run: |
           python skills/codex-downgrade/scripts/codex_downgrade.py session --help
           python skills/codex-downgrade/scripts/codex_downgrade.py official --help
+      - name: Check skill behavior
+        run: python -m unittest discover -s tests

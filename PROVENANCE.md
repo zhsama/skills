@@ -4,7 +4,7 @@ This private repository contains skills created or customized for zhsama with as
 
 - `ablation-experiment` follows zhsama's workflow for proposing a controlled experiment, obtaining approval before execution, and verifying the original evidence.
 
-- `codex-downgrade` preserves the complete previously installed skill, including its instructions, Codex interface metadata, and detector script. The detector is byte-for-byte identical to the file supplied by zhsama on 2026-09-08. Its original author and upstream URL were not supplied. The companion ChatGPT browser userscript is not included.
+- `codex-downgrade` is based on the detector zhsama supplied on 2026-09-08. This repository maintains its model tiers and reporting. Its original author and upstream URL were not supplied.
 
 - `disk-junk-scan` was imported from the installed macOS disk-scan skill. Its instructions, inspection notes, and Python tool messages are now in English. It scans developer and coding-agent leftovers and stays read-only until cleanup is explicitly approved. No machine inventory or personal paths are included.
 

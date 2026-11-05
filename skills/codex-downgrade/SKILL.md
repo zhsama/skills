@@ -34,10 +34,14 @@ Give the verdict and exit code first, then the findings.
 | --- | --- |
 | 0 | No downgrade detected |
 | 2 | Risk or insufficient evidence, such as missing headers, high quota usage, or logs showing that the comparison never ran |
-| 3 | Confirmed downgrade or reroute, or the requested model is unavailable |
+| 3 | Confirmed model change or reroute (including same-tier and higher-tier substitutions), or the requested model is unavailable |
 | 1 | The detector itself failed |
 
-The detector treats any of the following codes as confirmation. `MODEL_DOWNGRADED`, `MODEL_MISMATCH`, `VENDOR_MISMATCH`, `MODEL_UNRECOGNIZED`, `PROVIDER_SWITCHED_MID_SESSION`, `LOG_SERVER_MODEL_MISMATCH`, `LOG_PROVIDER_FALLBACK`, `LOG_MODEL_REROUTE_EVENT`, `SAFETY_BUFFERING_APPLIED`.
+Report the requested and serving model IDs first when both are available. The audit groups named models by product tier in descending order: Astra (100), Sol (90), Terra (65), and Luna (40). Known revisions of the same named tier share a rank. These are audit conventions based on the [OpenAI model catalog](https://developers.openai.com/api/docs/models).
+
+`MODEL_DOWNGRADED`, `MODEL_UPGRADED`, and `MODEL_SAME_TIER` require explicit ranks for both models. A different model with an unknown rank yields `MODEL_MISMATCH` with the direction undetermined. Use `--tier-map` with a JSON object of model IDs and integer ranks to add or override tiers. Version numbers, name fragments, and model picker order do not establish rank.
+
+A reroute event with both model IDs supports the same comparison offline. A routing signal alone establishes no tier direction. Safety buffering can advertise a faster model without switching to it.
 
 `LOGSCAN_UNCORROBORATED`, `HEADERS_STRIPPED`, and `NO_SERVED_MODEL` indicate missing evidence. An absent mismatch log does not establish that no downgrade occurred.
 
