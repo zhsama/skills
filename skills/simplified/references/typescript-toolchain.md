@@ -29,12 +29,12 @@
 
 ## Runtime Schemas and Parsing
 
-- Default to Zod for TypeScript runtime schema definition, parsing, validation, and type inference at untrusted boundaries. Zod is the preferred de facto ecosystem choice.
-- Reuse a project-owned equivalent schema layer when replacing it with Zod would create two competing contract systems or violate an explicit project rule.
+- Require runtime type validation at untrusted boundaries without prescribing a default validation library.
+- Reuse the project's owning schema layer. Select a compatible maintained solution only when the project needs one and has none; do not introduce competing contract systems as a simplification.
 - Parse HTTP/RPC payloads, messages, environment variables, configuration, storage, files, database/SDK results, and other untrusted runtime input at the owning boundary.
 - Do not parse or normalize already validated internal values again.
-- Derive TypeScript types from the owning Zod schema when the schema is the runtime source of truth. Avoid parallel handwritten types that can drift.
-- Do not use Zod to hand-roll parsers for standard formats; first use the canonical platform parser or a maintained format library, then validate the parsed shape with Zod when needed.
+- Derive TypeScript types from the owning schema when it is the runtime source of truth. Avoid parallel handwritten types that can drift.
+- Do not use schema validation to hand-roll parsers for standard formats; first use the canonical platform parser or a maintained format library, then validate the parsed shape when needed.
 
 ## Compiler and Lint Performance
 

@@ -10,7 +10,7 @@ Use the rule basis from `core-review.md`:
 
 - Treat current user instructions, project rules, standards, and verified runtime contracts as gates.
 - Require measured evidence for optimization claims.
-- Use Ludwig's preferences to select among safe, contract-preserving alternatives.
+- Use zhsama's preferences to select among safe, contract-preserving alternatives.
 
 Calling code "functionally correct" selects the quality objective; it does not replace equivalence evidence or validation.
 
@@ -28,6 +28,8 @@ Calling code "functionally correct" selects the quality objective; it does not r
 4. Search the repository read-only for reuse and the owning boundary. Keep writes inside the authorized target; surface an out-of-scope owner change instead of silently expanding the edit.
 
 Complete the baseline when every candidate can name the contract it must preserve and the evidence available to check it.
+
+Use [the candidate checklist](simplification-candidates.md) to inventory the relevant helpers, state, types, files, dependencies, comments, and tests in that target. Use it as input to the passes below, not as a second mandatory full audit.
 
 ## Four Independent Passes
 
@@ -101,7 +103,7 @@ Move candidates with a possible behavior, API, schema, error, ordering, accessib
 1. Deduplicate candidates and order accepted changes by dependency.
 2. Apply the smallest coherent changes sequentially.
 3. Inspect the diff after each contract-sensitive batch and remove stale imports, exports, paths, configs, and generated references caused by the edit.
-4. Run affected validation in the repository's required order. Reuse the baseline observation when practical.
+4. Run affected validation in the repository's required order. Reuse the baseline observation when practical. Use focused checks after each batch; broaden or repeat full checks only when the changed contract, an unresolved failure, or repository rules require it. Classify behavior, compilation, and environment failures separately as described in the candidate checklist.
 5. Inspect the final status and diff for scope, contract preservation, and unrelated modifications.
 
 Complete simplification when every accepted candidate was applied or explicitly skipped, every changed behavior surface has an observed validation result or named gap, and the final diff contains only authorized cleanup.

@@ -1,9 +1,9 @@
 ---
-name: ludwig-personal-code-review-preferences
-description: "Review TypeScript ecosystem code, diffs, PRs, plans, architecture, dependencies, performance, tests, and tooling using Ludwig's engineering preferences. Use for review, simplification, or cleanup requests. Reviews are read-only by default. Apply changes only when the user explicitly asks to simplify, clean up, fix, or implement the target."
+name: simplified
+description: "Review TypeScript ecosystem code, diffs, PRs, plans, architecture, dependencies, performance, tests, and tooling using zhsama's engineering preferences. Use for review, simplification, or cleanup requests. Reviews are read-only by default. Apply changes only when the user explicitly asks to simplify, clean up, fix, or implement the target."
 ---
 
-# Ludwig Review
+# Simplified
 
 Review risks or simplify correct code against stable, cross-project TypeScript ecosystem preferences. Keep project history and repository-specific layouts out of this skill. Treat current user instructions, repository rules, exact installed versions, and verified runtime behavior as higher-priority facts.
 
@@ -37,6 +37,7 @@ Load only the references relevant to the target:
 | File | Load when |
 | --- | --- |
 | `references/core-review.md` | Reviews and comprehensive simplifications. Defines evidence, rule basis, minimality, contracts, and review severity. |
+| `references/simplification-candidates.md` | Any simplification; also source-organization review involving comments, types, constants, or aliases. |
 | `references/simplification-execution.md` | Cross-module simplification or an explicitly requested comprehensive pass. |
 | `references/simplicity-and-architecture.md` | Architecture, abstractions, ownership, module boundaries, or public APIs. |
 | `references/typescript-toolchain.md` | TypeScript types, schemas, tsconfig, compiler, lint, module resolution, declaration, or monorepo tooling. |
@@ -86,11 +87,15 @@ Complete the branch when every finding has a location, rule basis, concrete impa
 
 ## Simplify Branch
 
-For a local change such as simplifying one function, inspect the callers and the observable behavior to preserve. Identify the concrete complexity removed. Run the closest check that exercises the affected behavior and any checks the project requires. Report the change, the basis for equivalence, and the observed result or validation gap.
+Read `references/simplification-candidates.md` and identify the actual comparison. For a PR, compare against its target branch; a stack layer uses its parent, not the default branch. For workspace changes, include staged, unstaged, and relevant untracked files. Keep edits within the requested target and the updates needed to complete its cleanup.
+
+For a local change such as simplifying one function, inspect the callers and the observable behavior to preserve. Use the candidate checklist only where it applies; do not manufacture a candidate for every row. Run the closest check that exercises the affected behavior and any checks the project requires. Report the change, the basis for equivalence, and the observed result or validation gap.
 
 For a cross-module change or a request for comprehensive simplification, follow the four passes in `references/simplification-execution.md`. Use the same behavior contract and write boundary for all passes.
 
 With read-only permission, return candidates as advice. With apply permission, change only candidates with a credible basis for equivalence. Report incidental behavior changes separately.
+
+Ordinary simplification does not automatically become a controlled ablation study. When the user requests experimental evidence comparing variants, use `ablation-experiment` if available and follow its experiment-design and approval process.
 
 ## Verification
 
