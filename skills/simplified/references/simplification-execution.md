@@ -4,15 +4,7 @@ Use these four passes for cross-module simplification or an explicit request for
 
 ## Definition
 
-Reduce the behavior a maintainer must hold in mind by removing owned concepts, mutable states, sources of truth, dependencies, branches, compatibility paths, or misplaced responsibilities. Preserve observable behavior and public contracts; line count is not the success measure.
-
-Use the rule basis from `core-review.md`:
-
-- Treat current user instructions, project rules, standards, and verified runtime contracts as gates.
-- Require measured evidence for optimization claims.
-- Use zhsama's preferences to select among safe, contract-preserving alternatives.
-
-Calling code "functionally correct" selects the quality objective; it does not replace equivalence evidence or validation.
+Reduce the behavior a maintainer must hold in mind while preserving observable behavior and public contracts. Apply the rule basis and complexity tags from `core-review.md`. Calling code "functionally correct" selects the quality objective; it does not replace equivalence evidence or validation.
 
 ## Target and Behavior Baseline
 

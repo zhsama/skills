@@ -41,8 +41,6 @@ Choose one primary growth area. Look for evidence that the other prerequisites a
 
 With the intended support, the user should be able to propose the next hypothesis or experiment and advance the fix. If they would need to copy a complete solution step by step, narrow the challenge or support the prerequisite first. Prefer candidates with a workable build, defined requirements, and adequate observability unless the learning objective is the tooling or method itself.
 
-The selection approach draws on staged implementation and tests in Nand to Tetris, focused and integrated labs in CS:APP, an xv6 task organized around copy-on-write, fault simulation in the Raft labs, and HtDP's use of design steps to locate difficulties. These inform selection and need not be researched again for each recommendation. [Nand to Tetris](https://www.nand2tetris.org/project07) · [CS:APP](https://csapp.cs.cmu.edu/3e/labs.html) · [xv6](https://pdos.csail.mit.edu/6.1810/2025/labs/cow.html) · [Raft lab](https://pdos.csail.mit.edu/6.824/labs/lab-raft1.html) · [HtDP](https://htdp.org/2024-8-20/Book/part_one.html)
-
 ### Screen candidates
 
 Prefer a real defect with clear expected behavior, an identifiable code entry point, an observable acceptance condition, and an existing or reasonably inexpensive reproduction. Be able to explain what the user would learn beyond their previous work. Check whether another contributor is working on a substantive fix or an existing PR already covers it.

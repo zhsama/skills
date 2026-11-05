@@ -1,17 +1,7 @@
 ---
 name: node-modules-inspector
 license: MIT
-description: >
-  Inspects a project's installed node_modules and produces three reports:
-  duplicated packages (installed in multiple versions), packages sorted by
-  install size, and maintenance actions (dep-upgrade opportunities + publint
-  findings, grouped by consumer/author). Use when the user wants to audit
-  dependencies, find duplicate packages, check what's taking up disk space in
-  node_modules, identify outdated peer/prod dependencies that newer dependents
-  could upgrade past, or list publint problems. Available as a CLI
-  (`npx node-modules-inspector report <duplicates|sizes|maintainers> [--json]`)
-  or an MCP stdio server (`npx node-modules-inspector mcp`) exposing the same
-  three reports as agent tools. Works with pnpm, npm, and bun.
+description: "Inspect a project's installed node_modules for duplicate package versions, install sizes, and maintenance actions (dependency upgrade opportunities and publint issues). Works with pnpm, npm, and bun via CLI or MCP. Read-only by default."
 ---
 
 # node-modules-inspector
@@ -26,7 +16,7 @@ description: >
 
 Reports run against the real on-disk `node_modules` — no registry calls are required for the basic shape; npm metadata is fetched only to enrich the maintainers report (gated by config).
 
-Works with pnpm, npm, and bun. The default `npx node-modules-inspector` (with no subcommand) opens a Vue web UI for humans; agents should use the `report` and `mcp` subcommands below.
+Works with pnpm, npm, and bun. Running `npx node-modules-inspector` with no subcommand starts a web UI on port 9999 (and `build` emits a static SPA to `dist/__node-modules-inspector/`); both are for humans or CI artifacts, so agents should use the `report` and `mcp` subcommands below.
 
 ## When to reach for this
 
@@ -196,9 +186,3 @@ Prefer the CLI (`report ... --json`) when shell-pipelining (`jq`, redirect, etc.
 - "No package manager detected" — the project has no `node_modules` directory, or none of pnpm/npm/bun lockfiles. Suggest the user run install first.
 - An empty `duplicates` result means no multiple-version packages were found within the selected root, depth, and filters.
 - Empty `maintainers` result — usually means there are no dep-upgrade opportunities AND `publint: true` is not set in the config; if the user expected publint output, point them at the config.
-
-## Web UI (skip for agent tasks)
-
-`npx node-modules-inspector` (no subcommand) starts a Vue dev server on port `9999` with a full visual explorer (graph view, filters, multi-version compare, maintainer-action dashboard). It's for humans; don't suggest it for an agent task. The `report` CLI and `mcp` server above cover the same data programmatically.
-
-`npx node-modules-inspector build` produces a static SPA of the analysis into `dist/__node-modules-inspector/` — useful for CI artifacts but not for agent consumption.
