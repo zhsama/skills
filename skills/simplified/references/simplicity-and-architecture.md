@@ -18,6 +18,8 @@ Apply DRY to duplicated semantics and business rules, not merely similar syntax.
 
 Treat file size as an investigation signal. Split when a file mixes unrelated responsibilities, state machines, runtimes, lifecycles, or change directions; do not split only to meet a line threshold.
 
+For concrete changes to comments, types, constants, or import aliases, use [the source-organization checklist](simplification-candidates.md#source-organization). File extraction must clarify an owner or consumer boundary rather than follow a mandatory `types.ts` or `constants.ts` convention.
+
 ## Ownership Pass
 
 Identify:

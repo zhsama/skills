@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Workflow"
+  short_description: "Manage issues, commits, PRs, reviews, and gh stack"
+  default_prompt: "Use $git-workflow for the requested GitHub operation, preserving its scope, authorization, and verification evidence."

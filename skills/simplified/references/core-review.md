@@ -10,11 +10,11 @@ Classify the basis of each conclusion:
 - `runtime-contract`: Verified behavior of the installed runtime, framework, SDK, dependency, or platform.
 - `measured`: Reproduction, trace, profile, benchmark, RUM, logs, screenshots, or other observable evidence.
 - `project-rule`: Explicit repository instruction, public API, migration contract, or project-owned convention.
-- `preference`: Ludwig's stable engineering preference where multiple correct choices remain.
+- `preference`: zhsama's stable engineering preference where multiple correct choices remain.
 
 Use severity only for review findings with a concrete correctness, security, performance, architecture, or maintenance impact. Put pure `preference` comments in a separate non-blocking section. In simplification, use preferences to choose among behaviorally equivalent alternatives rather than as authority to change a contract.
 
-Use `project-rule` only after reading the exact repository instruction or project-owned contract, and cite that source in the finding. Keep a stable Ludwig preference classified as `preference` when no project rule adopts it. When the defect and proposed remedy have different bases, identify both instead of relabeling the remedy as the defect's basis.
+Use `project-rule` only after reading the exact repository instruction or project-owned contract, and cite that source in the finding. Keep a stable personal preference classified as `preference` when no project rule adopts it. When the defect and proposed remedy have different bases, identify both instead of relabeling the remedy as the defect's basis.
 
 ## Evidence Discipline
 

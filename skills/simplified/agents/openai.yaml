@@ -1,0 +1,4 @@
+interface:
+  display_name: "Simplified"
+  short_description: "Simplify or review TypeScript with evidence and clear scope"
+  default_prompt: "Use $simplified to simplify the current target while preserving its behavior and verifying the result. Keep review-only requests read-only."
