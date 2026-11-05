@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Init"
+  short_description: "Start projects with a focused TypeScript and Vite+ stack"
+  default_prompt: "Use $project-init to initialize the requested project with the smallest suitable stack and verify its first working behavior."
