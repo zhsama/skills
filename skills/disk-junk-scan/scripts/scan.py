@@ -7,6 +7,7 @@ Usage: scan.py [--repos-root DIR] [--depth N] [--min-mib N] [--skip-machine] [--
 import argparse
 import json
 import os
+import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
@@ -76,6 +77,8 @@ def main():
     header = scan_machine.capacity_line()
     header += f"  Repositories scanned under `{args.repos_root.replace(HOME, '~')}`: {len(repos)}"
     print(render_table(rows, min_kib, header))
+    if not args.skip_machine and shutil.which("pnpm"):
+        print("\nOptional, unmeasured: `pnpm store prune`. Select separately with `--prune-pnpm`.")
 
 
 if __name__ == "__main__":

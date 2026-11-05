@@ -37,15 +37,17 @@ Apply these exclusions to scripted scans and manual inspection.
 
 1. Run one scan to produce both the size-ranked table and its JSON plan. This often takes tens of seconds and can take minutes across many repositories or on a cold disk.
 2. Inspect large tier B entries using [targets.md](targets.md). Add what each item contains and who still uses it to the evidence.
-3. Present free space and the tier A total first, then the tier B items that need individual approval.
+3. Present free space and the tier A total first, then the tier B items that need individual approval. Offer pnpm store pruning separately if pnpm is installed.
 4. After approval, show a dry run of the chosen rows before using `--execute`.
 5. Report reclaimed space per row. APFS can take several minutes to reflect large deletions in `df`. Compare again if the immediate value is tens of GiB lower than expected.
 
 ### Scan once
 
+Set `PLAN` to a new file path in the project's ignored temporary directory.
+
 ```bash
 S=~/.agents/skills/disk-junk-scan/scripts
-python3 $S/scan.py [--repos-root ~/github] [--min-mib 50] --plan /tmp/plan.json
+python3 "$S/scan.py" --plan "$PLAN"
 ```
 
 The table goes to standard output. `--plan` writes the same rows to disk. `--json` prints JSON instead of the table. Avoid a second scan just to obtain JSON.
@@ -71,21 +73,21 @@ For tier B directories larger than 1 GiB, the evidence already includes a first-
 ### Apply an approved plan
 
 ```bash
-python3 $S/apply.py /tmp/plan.json --tier A              # Dry run with commands and estimated recovery
-python3 $S/apply.py /tmp/plan.json --tier A --execute    # Execute tier A and finish with pnpm store prune
-python3 $S/apply.py /tmp/plan.json --rows 4,6 --execute  # Run the named rows. Tier B requires row IDs.
+python3 "$S/apply.py" "$PLAN" --tier A             # Preview tier A
+python3 "$S/apply.py" "$PLAN" --rows 4,6 --execute # Run only the approved rows
+python3 "$S/apply.py" "$PLAN" --prune-pnpm         # Preview separately authorized pnpm pruning
 ```
 
 The plan is a snapshot. Rescan before applying a stale plan. `apply.py` uses each row's recorded `command`, such as `rm -rf`, `git worktree remove`, Docker prune commands, `xcrun simctl delete`, `rustup toolchain uninstall`, or `npm cache clean`. Before execution it verifies that the path still exists, no process command line refers to it, the worktree is clean, and the directory contains no tracked files. A missing worktree can still be pruned. Browsers and headless processes count as users of a path just as Cargo and Node do. Failed checks skip the row and report why.
 
 Deeper paths run first so a child's `git worktree remove` precedes its parent's `rm -rf`. A tier B parent's displayed size excludes separately listed children, but its command still removes the whole parent. For a folded `rm -rf`, remove members individually so one failure does not mask the rest. Read-only extracted directories may retry after `chmod -R u+w`. Do not retry `Operation not permitted`. Tier C rows are report-only. Rows without commands, such as Parallels data and some Zed or model directories, are excluded from automatic cleanup.
 
-When `rm -rf` succeeds and the path disappears, use the planned size. Measure again only if some of the tree remains. For tool commands, use the amount the tool reports. An execution run finishes with `pnpm store prune` and a `df` comparison.
+When `rm -rf` succeeds and the path disappears, use the planned size. Measure again only if some of the tree remains. For tool commands, use the amount the tool reports. Compare available space with `df` after execution.
 
 ## Manual cleanup
 
 - Prefer the tool's own cleanup command. Use `rm -rf` only for disposable output and temporary directories.
-- Run `pnpm store prune` with each cleanup, without first measuring the store. Distinguish hardlinks from independent copies before removing `node_modules`. [Storage checks](targets.md)
+- Run `pnpm store prune` only when the user explicitly selects it. Add `--prune-pnpm --execute` to apply that choice, either alone or alongside approved rows. Distinguish hardlinks from independent copies before removing `node_modules`. [Storage checks](targets.md)
 - `brew cleanup` removes outdated bottles. The reclaimable amount comes from `brew cleanup -n`. `brew cleanup -s` also removes current bottles, which will need to be downloaded again. `uv cache prune` has no dry run, so its directory size does not count toward the reclaimable total.
 - Immediately before removal, recheck `git status --porcelain`, `git ls-files -- <path>`, and `ps -axo command`. Require a clean tree, no tracked files under the path, and no process using it.
 - After cleanup, confirm that active projects retain their `node_modules` and that `docker system df` agrees with the expected result.
@@ -95,7 +97,7 @@ When `rm -rf` succeeds and the path disappears, use the planned size. Measure ag
 | File | Responsibility |
 | --- | --- |
 | `scripts/scan.py` | Run machine and repository scans in parallel, then produce one table and JSON plan. |
-| `scripts/apply.py` | Recheck and apply the plan. Defaults to dry run and accepts `--tier A` or `--rows`. |
+| `scripts/apply.py` | Recheck and apply selected rows, with a separate `--prune-pnpm` option. Defaults to dry run. |
 | `scripts/scan_machine.py` | Inspect known caches, toolchains, Docker, simulators, agent directories, temporary directories, and orphan app data. The installed-app index is cached under `~/.cache/disk-junk-scan/`. |
 | `scripts/scan_repo.py` | Classify worktrees, ignored artifacts and dependencies, and temporary directories named for the repository. |
 | `scripts/common.py` | Share the `Row` format (including `command`, `members`, and `id`), batched `du`, folding, deduplication, and table rendering. |

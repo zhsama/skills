@@ -34,7 +34,7 @@ ps -axo command | grep <path>
 
 - A Rust `target/` can exceed 40 GB in one repository, with a separate copy in each worktree.
 - Mobile build paths include `android/app/build`, `ios/build`, `ios/Pods`, and `.cxx`.
-- Sample ordinary files in pnpm's `node_modules` and inspect `st_nlink`. A link count above one means removing the directory does not reclaim the copy in the store. A count of one indicates an independent copy whose space is measured by `du` and whose dependencies must be reinstalled. In either case run `pnpm store prune` during approved cleanup.
+- Sample ordinary files in pnpm's `node_modules` and inspect `st_nlink`. A link count above one means removing the directory does not reclaim the copy in the store. A count of one indicates an independent copy whose space is measured by `du` and whose dependencies must be reinstalled. Store pruning requires separate approval.
 
 ## Temporary directories
 
@@ -113,7 +113,7 @@ For a reverse-domain directory, check its bundle ID, first three name segments, 
 
 | Path | Handling |
 | --- | --- |
-| `~/Library/pnpm/store` | Skip the roughly 15-second `du`. Use `pnpm store prune` during cleanup and check that active projects still have their `node_modules`. |
+| `~/Library/pnpm/store` | Skip the roughly 15-second `du`. Offer `pnpm store prune` as a separate choice and check that active projects retain their `node_modules`. |
 | `~/Library/Caches/Homebrew` | Use `brew cleanup -n` for estimated reclaimed space. With `brew cleanup -s`, even current bottles will be downloaded again on the next install. |
 | `~/.cache/uv` | `uv cache prune` has no dry run. Exclude the directory size from totals and use the amount reported at execution. |
 | `~/.cargo/registry/src` | Can be unpacked again from `cache/`. |

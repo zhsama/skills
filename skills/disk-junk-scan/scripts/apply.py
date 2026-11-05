@@ -8,10 +8,10 @@ Dry-run by default. Rules that cannot be bypassed:
     files, no running process inside, git worktree still clean)
 
 Usage:
-  scan.py --plan /tmp/plan.json
-  apply.py /tmp/plan.json --tier A              # dry run: show what would run
-  apply.py /tmp/plan.json --tier A --execute    # do it, then pnpm store prune
-  apply.py /tmp/plan.json --rows 4,6,13 --execute
+  scan.py --plan PLAN
+  apply.py PLAN --tier A                  # dry run
+  apply.py PLAN --rows 4,6,13 --execute   # selected rows only
+  apply.py PLAN --prune-pnpm               # preview separate pnpm cleanup
 """
 import argparse
 import json
@@ -100,8 +100,9 @@ def counted_kib(row):
 
 
 def pnpm_store_prune():
-    """Run at the end of a real cleanup. The store is never measured during scan."""
+    """Use pnpm's own size report because the store is not measured during scanning."""
     if not shutil.which("pnpm"):
+        print("Skipped pnpm store prune: pnpm is unavailable.")
         return None
     proc = subprocess.run(["pnpm", "store", "prune"], capture_output=True, text=True, timeout=1800)
     out = "\n".join(part for part in (proc.stdout, proc.stderr) if part)
@@ -129,10 +130,11 @@ def main():
     ap.add_argument("plan", help="JSON produced by scan.py --json")
     ap.add_argument("--tier", choices=["A"], help="run every tier A row (B needs --rows)")
     ap.add_argument("--rows", help="comma-separated table ids to run, e.g. 4,6,13")
+    ap.add_argument("--prune-pnpm", action="store_true", help="separately select pnpm store prune")
     ap.add_argument("--execute", action="store_true", help="actually run; default is dry run")
     args = ap.parse_args()
-    if not args.tier and not args.rows:
-        ap.error("choose --tier A or --rows N,M,...")
+    if not (args.tier or args.rows or args.prune_pnpm):
+        ap.error("choose --tier A, --rows N,M,... or --prune-pnpm")
 
     with open(args.plan) as fh:
         rows = json.load(fh)
@@ -185,16 +187,19 @@ def main():
         note = f"Done, reclaimed {gib(freed)} GiB" if not errors else f"Partially completed, reclaimed {gib(freed)} GiB. Could not remove {errors[-1]}"
         print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | {note} |")
 
+    if args.prune_pnpm:
+        if args.execute:
+            freed_est += pnpm_store_prune() or 0
+        else:
+            print("\nWould run separately selected command: `pnpm store prune` (size unmeasured).")
+
     if args.execute:
-        pruned = pnpm_store_prune()
-        if pruned:
-            freed_est += pruned
         time.sleep(2)  # APFS reports freed space with a short delay
         after = avail_kib()
         print(f"\nAvailable space {gib(before)} → **{gib(after)} GiB** (df change {gib(after - before)} GiB, estimated reclamation {gib(freed_est)} GiB)")
         print("APFS may report freed space later. Check `df -h` again in a few minutes.")
     else:
-        print(f"\nEstimated recovery: {gib(freed_est)} GiB. Use `--execute` to apply the plan and run `pnpm store prune` at the end.")
+        print(f"\nEstimated recovery: {gib(freed_est)} GiB. Use `--execute` to apply the selection.")
 
 
 if __name__ == "__main__":
