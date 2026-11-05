@@ -1,6 +1,8 @@
 # Provenance
 
-This private repository contains skills created or customized for zhsama with assistance from Codex.
+This repository contains skills created or customized for zhsama with assistance from Codex.
+
+- `rules/AGENTS.md` contains zhsama's current global instructions. It replaces the earlier `backups/codex/AGENTS.md` snapshot as the maintained source for restoring those preferences.
 
 - `ablation-experiment` follows zhsama's workflow for proposing a controlled experiment, obtaining approval before execution, and verifying the original evidence.
 

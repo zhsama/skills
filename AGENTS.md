@@ -1,0 +1,91 @@
+# Agent guide
+
+This repository contains zhsama's skills and global preferences. Use this guide when asked to install, update, or maintain them. The human-facing catalog is [README.md](README.md).
+
+## Installation
+
+Use the [skills CLI](https://github.com/vercel-labs/skills). The commands below were checked with version 1.7.6, which requires Node.js 22.20 or later, and Git for repository sources. Inspect the installed CLI's help if its version differs.
+
+Read the requested skills' `compatibility` fields and instructions before installing. Installation provides instructions and bundled scripts; it does not provision the models, tools, credentials, or services they use.
+
+List the available skills:
+
+```sh
+npx skills add zhsama/skills --list
+```
+
+Install all skills globally for Codex:
+
+```sh
+npx skills add zhsama/skills -g -a codex --skill '*' -y
+```
+
+Select individual skills and agents:
+
+```sh
+npx skills add zhsama/skills -g -a codex cursor --skill git-workflow simplified -y
+```
+
+- Use the scope and agents requested by the user. Omit `-g` for a project installation and run the command from that project's root.
+- Use `--skill '*'` for every skill in this source. `--all` also selects every agent, so it is unsuitable when the user named only some agents.
+- `-a` selects destinations, not an access boundary. In CLI 1.7.6, Codex and Cursor both install into `~/.agents/skills`, even with `--copy`. That flag creates independent copies for agents with dedicated directories, such as Claude Code. If strict isolation between shared-directory agents is required, check their supported configuration instead of treating `-a` as isolation.
+- Before replacing an existing skill, compare its files and recorded source with the requested version. Preserve local customizations in an ignored project-scoped backup and resolve substantive differences before overwriting them. Reinstalling an unchanged upstream copy needs no additional confirmation.
+- Keep downloads, backups, and verification logs in an ignored `.local/` directory in the working checkout. Do not add them to the distributed skills.
+
+The [CLI reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md) and [agent directory table](https://github.com/vercel-labs/skills/blob/main/docs/agents.md) describe other supported targets.
+
+## Global instructions
+
+[rules/AGENTS.md](rules/AGENTS.md) is the file to restore. This root guide describes repository operations and must not replace the user's global preferences.
+
+Restore global instructions when the user asks for them or for a full setup that explicitly includes them. A request to install selected skills alone does not change global rules.
+
+For Codex:
+
+1. Read `rules/AGENTS.md` from the same repository revision used for the skill installation.
+2. Resolve the destination to `AGENTS.md` inside `CODEX_HOME`, or `~/.codex/AGENTS.md` when `CODEX_HOME` is unset. Read the destination and check for `AGENTS.override.md`, which takes precedence.
+3. If the destination already matches, leave it alone. Otherwise preserve any existing file in the checkout's ignored `.local/` directory and reconcile local changes with the requested restore. Do not silently discard custom rules or delete an override file.
+4. Copy the resolved content to the destination and compare the result. Use a copy if the checkout is temporary; a link to a deleted checkout would break future sessions.
+5. Report any active override and start a new session to verify the effective instructions.
+
+See [Codex instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md#how-codex-discovers-guidance). For another agent, check its official global-instruction format and location before adapting these preferences; installing a skill with `-a` does not install global rules for that agent.
+
+## Updates and migration
+
+Use named updates to keep the operation within the requested scope:
+
+```sh
+npx skills update -g git-workflow simplified
+```
+
+For a complete refresh of this source, rerun its scoped `add` command. Do not run an unrestricted global update as a substitute: it also affects skills installed from unrelated sources. Refresh global instructions separately by comparing `rules/AGENTS.md` with the installed file.
+
+`simplified` replaces `ludwig-personal-code-review-preferences`. If the old name is installed, preserve its customizations, install and verify `simplified`, then remove the old entry from the intended scope and agents. An update of the old name does not install the replacement. Check shared directories before removing a skill used by another agent.
+
+## Verification
+
+```sh
+npx skills list -g -a codex
+```
+
+For project installs, omit `-g`. Confirm that the requested skill files and referenced resources exist, links resolve, and the CLI's installation records point to the intended source. Check actual destinations as well as the listing; shared-directory entries can be visible under more than one agent.
+
+Report which skills, scope, and agents were installed, whether global rules were restored, and any missing runtime capabilities. A successful file installation does not establish that an external service is configured.
+
+## Maintenance
+
+- Keep each skill under `skills/<name>/` with every resource it references. Write instructions, descriptions, examples, and tool messages in English; preserve explicit response-language preferences.
+- Keep README concise: purpose, catalog, basic installation, and a few examples. Put detailed operations in this guide and origins in [PROVENANCE.md](PROVENANCE.md).
+- Maintain `rules/AGENTS.md` as the global preference source. Changes to the current local rules should be reconciled here rather than stored as another tracked backup.
+- Preserve upstream notices with copied or adapted third-party files. Keep private session data, account configuration, and machine-specific paths out of tracked content.
+- After skill changes, run the reference validator and existing regression suite. For documentation changes, check links and any installation commands affected by the change.
+
+```sh
+for skill in skills/*/; do
+  uvx --from skills-ref==0.1.1 agentskills validate "$skill" || exit 1
+done
+python3 -m unittest discover -s tests
+git diff --check
+```
+
+GitHub Actions runs the repository's existing skill and regression checks. Behavioral experiments are separate and should match the change being evaluated.
