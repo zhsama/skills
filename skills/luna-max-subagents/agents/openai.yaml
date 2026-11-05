@@ -1,4 +1,0 @@
-interface:
-  display_name: "Luna Max Subagents"
-  short_description: "Coordinate Luna Max subagents and verify their results"
-  default_prompt: "Use $luna-max-subagents to delegate the tasks I specify. Default to three agents if I give no count, or choose another count that better fits the work."

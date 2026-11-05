@@ -1,4 +1,4 @@
 interface:
   display_name: "Ablation Experiment"
-  short_description: "Design ablations, approve Luna tasks, and verify the evidence"
-  default_prompt: "Use $ablation-experiment to prepare an experiment and a Luna staffing plan for this change. Show me both plans and wait for my approval before running them."
+  short_description: "Design controlled ablations and verify the evidence"
+  default_prompt: "Use $ablation-experiment to design an experiment for this change and wait for my approval before running it."
