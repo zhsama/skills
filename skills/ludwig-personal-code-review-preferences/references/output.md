@@ -31,7 +31,7 @@ State the overall risk in one sentence.
 - Include the rule basis: `standard`, `runtime-contract`, `measured`, or `project-rule`.
 - Cite the exact repository instruction or project-owned contract for every `project-rule` label.
 - Distinguish the defect basis from a preferred remedy when they differ.
-- Prefix a remedy based only on Ludwig's preference with the Chinese label pronounced *piānhào xiūfù fāngxiàng* (“preferred repair direction”). Acknowledge other remedies that satisfy the contract.
+- If a remedy reflects only Ludwig's preference, label it “preferred repair direction” in the language of the report. Acknowledge other remedies that satisfy the contract.
 - Add a complexity tag when useful: `delete`, `reuse`, `platform`, `dependency`, `yagni`, `shrink`, or `contract`.
 - Include a file and line, exact diff/plan/log reference, screenshot area, trace event, or API contract.
 - Explain the problem, concrete impact, and suggested correction or decision path.
