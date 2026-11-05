@@ -12,6 +12,7 @@ This private repository contains skills created or customized for zhsama with as
 - `issue-review-workflow` records zhsama's process for independent issue verification, user approval of the problem list and repair scope, and review of the resulting changes.
 - `sol-max-subagents` follows zhsama's requested delegation workflow for `gpt-6.1-sol` with `max` reasoning effort.
 - `ludwig-personal-code-review-preferences` contains zhsama's maintained TypeScript ecosystem review and simplification preferences. Personal preferences are distinguished from project rules and externally verified standards in the skill.
+- `node-modules-inspector` is adapted from [antfu/node-modules-inspector](https://github.com/antfu/node-modules-inspector/tree/602140fc629ce6279ffac18ab88c76f7b1c9cf46/skills/node-modules-inspector) at revision `602140fc629ce6279ffac18ab88c76f7b1c9cf46`. The upstream MIT license is included in its skill directory. Local guidance adds read-only inspection, Chinese reports, installed-size interpretation, and the verified cache location, MCP names, and argument wrapper for version 2.7.0.
 
 The initial import preserves the complete installed contents of both skills, including their Codex interface metadata and referenced documents. No personal session transcripts, account configuration, or unrelated third-party skill packages are included.
 

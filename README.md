@@ -10,6 +10,7 @@ Agent Skills for zhsama, distributed as standard `SKILL.md` directories.
 | [issue-brief](skills/issue-brief/SKILL.md) | GitHub access, source inspection, and a way to reproduce the issue | Choose a bug just beyond the user's current experience, reproduce it, and explain the mechanism and repair direction. |
 | [issue-review-workflow](skills/issue-review-workflow/SKILL.md) | Independent subagents with fresh contexts | Verify issues, review plans and fixes, and stop for user approval of the findings and repair scope. |
 | [ludwig-personal-code-review-preferences](skills/ludwig-personal-code-review-preferences/SKILL.md) | Target code and its toolchain | Review or simplify TypeScript code using Ludwig's preferences. Local edits use focused checks. Cross-module or comprehensive simplifications use four passes. |
+| [node-modules-inspector](skills/node-modules-inspector/SKILL.md) | Node.js, installed pnpm/npm/bun dependencies, and the inspector CLI or MCP server | Report duplicate versions, installed sizes, and maintenance opportunities. Reports are read-only and written in Chinese. |
 | [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | A subagent runtime with the specified dispatch parameters, `gpt-6.1-sol`, and `max` effort | Delegate to Sol Max and verify the results. Default to three agents or choose another count that fits the task. |
 
 Model-independent workflows still need their listed capabilities. Compatibility with every agent has not been tested. The downgrade detector inspects Codex data and can be run by any agent with access to it. The disk scanner targets macOS.
@@ -57,6 +58,14 @@ The scanner uses macOS and Python 3. It displays a table first. The user approve
 npx skills@latest add zhsama/skills --global --agent codex --skill disk-junk-scan
 ```
 
+### Dependency inspection
+
+```sh
+npx skills@latest add zhsama/skills --global --agent codex --skill node-modules-inspector
+```
+
+Use the project's installed inspector CLI or an on-demand `npx node-modules-inspector report` command. The skill documents the three reports and the optional MCP interface.
+
 ### Ablation experiments
 
 ```sh
@@ -87,6 +96,7 @@ $issue-brief Use my recent contributions to find an issue that develops one spec
 $issue-brief https://github.com/owner/repo/issues/123
 $issue-review-workflow Verify every issue in <milestone URL>, independently recheck the findings, and bring me the list to confirm.
 $ludwig-personal-code-review-preferences Review the current target.
+$node-modules-inspector Find duplicated versions and the largest installed dependencies in this project.
 $sol-max-subagents Review the API and tests separately, then summarize the results.
 ```
 
@@ -101,7 +111,7 @@ $sol-max-subagents Review the API and tests separately, then summarize the resul
 ## Updates
 
 ```sh
-npx skills@latest update ablation-experiment codex-downgrade disk-junk-scan issue-brief issue-review-workflow ludwig-personal-code-review-preferences sol-max-subagents
+npx skills@latest update ablation-experiment codex-downgrade disk-junk-scan issue-brief issue-review-workflow ludwig-personal-code-review-preferences node-modules-inspector sol-max-subagents
 ```
 
 ## Maintenance and validation
@@ -120,6 +130,7 @@ uvx --from skills-ref==0.1.1 agentskills validate skills/codex-downgrade
 uvx --from skills-ref==0.1.1 agentskills validate skills/disk-junk-scan
 uvx --from skills-ref==0.1.1 agentskills validate skills/issue-brief
 uvx --from skills-ref==0.1.1 agentskills validate skills/issue-review-workflow
+uvx --from skills-ref==0.1.1 agentskills validate skills/node-modules-inspector
 uvx --from skills-ref==0.1.1 agentskills validate skills/sol-max-subagents
 ```
 
