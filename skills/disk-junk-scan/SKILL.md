@@ -1,6 +1,6 @@
 ---
 name: disk-junk-scan
-description: "Scan macOS for reclaimable disk space from development tools and coding agents. Use for low disk space, caches, stale worktrees, temporary verification directories, or an explicit disk-junk-scan request. Return a size-ranked table with risk tiers. Cover build and test output, package caches, toolchains, agent workspaces, Docker, iOS simulators, and orphaned app data. Start read-only and require explicit cleanup approval after the user has seen the table."
+description: "Scan macOS for reclaimable disk space from development tools and coding agents. Use for low disk space, caches, stale worktrees, or temporary directories. Starts read-only, returns a size-ranked table by risk tier, and requires explicit approval before cleanup."
 compatibility: "Requires macOS and Python 3 with the standard library. Cleanup commands are proposed for review and run only after explicit approval."
 ---
 
@@ -78,17 +78,21 @@ python3 "$S/apply.py" "$PLAN" --rows 4,6 --execute # Run only the approved rows
 python3 "$S/apply.py" "$PLAN" --prune-pnpm         # Preview separately authorized pnpm pruning
 ```
 
-The plan is a snapshot. Rescan before applying a stale plan. `apply.py` uses each row's recorded `command`, such as `rm -rf`, `git worktree remove`, Docker prune commands, `xcrun simctl delete`, `rustup toolchain uninstall`, or `npm cache clean`. Before execution it verifies that the path still exists, no process command line refers to it, the worktree is clean, and the directory contains no tracked files. A missing worktree can still be pruned. Browsers and headless processes count as users of a path just as Cargo and Node do. Failed checks skip the row and report why.
+The plan is a snapshot; rescan before applying a stale plan. `apply.py` automatically enforces these execution safeguards:
 
-Deeper paths run first so a child's `git worktree remove` precedes its parent's `rm -rf`. A tier B parent's displayed size excludes separately listed children, but its command still removes the whole parent. For a folded `rm -rf`, remove members individually so one failure does not mask the rest. Read-only extracted directories may retry after `chmod -R u+w`. Do not retry `Operation not permitted`. Tier C rows are report-only. Rows without commands, such as Parallels data and some Zed or model directories, are excluded from automatic cleanup.
+- Runs each row's recorded `command` (`rm -rf`, `git worktree remove`, Docker prune, `xcrun simctl delete`, `rustup toolchain uninstall`, `npm cache clean`) from deepest path to shallowest so child worktrees are removed before parent directories.
+- Verifies before each removal that the path exists, no process command line (including browsers and headless tools) references it, the worktree is clean, and no tracked files reside under it. Failed checks skip the row and report why.
+- Removes members of a folded `rm -rf` row individually, retries read-only extracted directories once after `chmod -R u+w`, and never retries `Operation not permitted`.
+- Skips Tier C rows and rows without automatic commands (such as Parallels data or manual model directories). Note that a Tier B parent's displayed size excludes separately listed children, but approving the parent removes the entire parent tree.
 
 When `rm -rf` succeeds and the path disappears, use the planned size. Measure again only if some of the tree remains. For tool commands, use the amount the tool reports. Compare available space with `df` after execution.
 
 ## Manual cleanup
 
+When cleaning up outside `apply.py`, follow the store rules and inspection commands in [targets.md](targets.md):
+
 - Prefer the tool's own cleanup command. Use `rm -rf` only for disposable output and temporary directories.
-- Run `pnpm store prune` only when the user explicitly selects it. Add `--prune-pnpm --execute` to apply that choice, either alone or alongside approved rows. Distinguish hardlinks from independent copies before removing `node_modules`. [Storage checks](targets.md)
-- `brew cleanup` removes outdated bottles. The reclaimable amount comes from `brew cleanup -n`. `brew cleanup -s` also removes current bottles, which will need to be downloaded again. `uv cache prune` has no dry run, so its directory size does not count toward the reclaimable total.
+- Run `pnpm store prune` only when explicitly selected by the user.
 - Immediately before removal, recheck `git status --porcelain`, `git ls-files -- <path>`, and `ps -axo command`. Require a clean tree, no tracked files under the path, and no process using it.
 - After cleanup, confirm that active projects retain their `node_modules` and that `docker system df` agrees with the expected result.
 
@@ -102,4 +106,4 @@ When `rm -rf` succeeds and the path disappears, use the planned size. Measure ag
 | `scripts/scan_repo.py` | Classify worktrees, ignored artifacts and dependencies, and temporary directories named for the repository. |
 | `scripts/common.py` | Share the `Row` format (including `command`, `members`, and `id`), batched `du`, folding, deduplication, and table rendering. |
 
-The scripts use the Python 3 standard library. Process count dominated the original scan time: roughly 5,000 `du` and Git subprocesses took 80 seconds in an earlier run. Batch `du` and `git ls-files` per worktree and scan repositories concurrently. A cold disk or many repositories can still take minutes.
+The scripts use the Python 3 standard library, batching `du` and `git ls-files` per worktree and scanning repositories concurrently.

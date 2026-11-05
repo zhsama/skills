@@ -17,7 +17,7 @@ Start with `session` unless the user specifies otherwise. Run `official` only wh
 Use `--session-id` if the current session ID is known. Otherwise start with `--sessions 3`.
 
 ```bash
-SCRIPT="$HOME/.codex/skills/codex-downgrade/scripts/codex_downgrade.py"
+SCRIPT="$HOME/.agents/skills/codex-downgrade/scripts/codex_downgrade.py"
 
 python3 "$SCRIPT" session --sessions 3
 python3 "$SCRIPT" session --session-id <uuid-or-prefix>

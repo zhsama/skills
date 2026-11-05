@@ -1,6 +1,6 @@
 # TypeScript Configuration
 
-Borrow the strict, explicit configuration approach from Anthony Fu's starter, then match the actual runtime. Do not apply one browser-bundler configuration to every artifact.
+Use a strict, explicit configuration matched to the actual runtime. Do not apply one browser-bundler configuration to every artifact.
 
 ## Common Decisions
 
