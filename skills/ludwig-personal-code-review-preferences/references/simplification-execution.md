@@ -1,6 +1,6 @@
 # Behavior-Preserving Simplification
 
-Use this reference for every `simplify` objective.
+Use these four passes for cross-module simplification or an explicit request for comprehensive simplification.
 
 ## Definition
 
@@ -77,7 +77,7 @@ Pure taste, line-count reduction, and syntax similarity are insufficient costs.
 
 When agent delegation is allowed and available, assign the four passes to independent read-only reviewers and launch them concurrently up to the available capacity. Give each reviewer the same baseline and exactly one lens. Require candidate records and prohibit project-file edits.
 
-Keep the main agent as the sole writer. Run any undispatched pass locally or in a later wave. If independent agents are unavailable, run all four passes sequentially and disclose the fallback in the final response.
+Keep the main agent as the sole writer. Complete any undispatched passes locally. Disclose a missing independent review when the user requested one.
 
 Complete discovery when all four passes returned or were executed sequentially, including passes that found no candidate.
 

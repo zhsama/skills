@@ -20,7 +20,7 @@ Infer both dimensions from the user's wording. Ask only when a material edit wou
 
 ## Operating Rules
 
-- Read the current repository instructions and relevant project skills before applying personal preferences.
+- Read applicable repository instructions and project skills when present. If none exist, continue from the target code, configuration, and tests.
 - Apply repository instructions only after confirming that the target belongs to that repository. Treat standalone pasted code, plans, logs, and screenshots as context-free unless the user links them to the current workspace.
 - Inspect the actual target and surrounding ownership boundaries before judging it.
 - Preserve unrelated worktree changes. Search beyond the target read-only when needed, and extend the write scope only with explicit authorization.
@@ -36,23 +36,22 @@ Load only the references relevant to the target:
 
 | File | Load when |
 | --- | --- |
-| `references/core-review.md` | Every review and simplification. Defines evidence, rule basis, minimality, contracts, and review severity. |
-| `references/simplification-execution.md` | Every `simplify` objective. Defines the four passes, preference gate, edit discipline, and completion criteria. |
-| `references/simplicity-and-architecture.md` | Every simplification, plus architecture, refactor, abstraction, ownership, folder, module, package, or public API review. |
+| `references/core-review.md` | Reviews and comprehensive simplifications. Defines evidence, rule basis, minimality, contracts, and review severity. |
+| `references/simplification-execution.md` | Cross-module simplification or an explicitly requested comprehensive pass. |
+| `references/simplicity-and-architecture.md` | Architecture, abstractions, ownership, module boundaries, or public APIs. |
 | `references/typescript-toolchain.md` | TypeScript types, schemas, tsconfig, compiler, lint, module resolution, declaration, or monorepo tooling. |
 | `references/react-and-web.md` | React, frontend, browser, UI, accessibility, CSS, rendering, or web API review. |
 | `references/performance.md` | Runtime, render, bundle, build, cache, streaming, memory, latency, or other performance claims. |
 | `references/dependencies-and-runtime.md` | Dependencies, SDKs, parsing, HTTP, network, sockets, protocols, native, OS, or package publishing. |
-| `references/testing-and-validation.md` | Every applied change, plus tests, bug fixes, CI, release validation, or claims that checks passed. |
+| `references/testing-and-validation.md` | Test changes, bug fixes, CI, or validation that spans multiple behavior boundaries. |
 | `references/output.md` | Before writing a final `review` response. |
-| `references/simplify-output.md` | Before writing a final `simplify` response. |
+| `references/simplify-output.md` | Before reporting a comprehensive simplification. |
 
 ## Required Inputs
 
 - Require an actual target: diff, PR, files, branch, plan, logs, screenshots, trace, or pasted code. When the user implies the current workspace, inspect the obvious local diff.
 - Confirm the target's repository provenance before loading project-specific rules.
 - When the current workspace is the target, inspect status plus staged, unstaged, and untracked changes instead of relying on a single diff command.
-- Require repository instructions when reviewing repository code.
 - Require official docs or installed source/types before blocking on a version-sensitive API claim.
 - Require actual output before claiming lint, typecheck, tests, build, screenshots, traces, or benchmarks passed.
 - For each applied simplification, require a stated behavior contract, a credible equivalence basis, and proportionate validation. Keep uncertain candidates as advice.
@@ -72,9 +71,9 @@ Classify the target before loading references:
 ## Shared Workflow
 
 1. Resolve the target, repository provenance, objective, and permission. Complete this step when the applicable project context, write boundary, and expected outcome are explicit.
-2. Load repository instructions, obvious project context, and relevant project skills. Complete this step when project rules are separated from stable preferences.
-3. Inspect the target, surrounding owners, callers, callees, tests, public surfaces, and existing facilities. Complete this step when every proposed conclusion can be tied to its owning context.
-4. Load `references/core-review.md` and only the applicable domain references. Verify version-sensitive external facts before treating them as blockers. Complete this step when each conclusion has a rule basis and evidence status.
+2. Apply any existing repository instructions and relevant project skills to the target, keeping project rules separate from personal preferences.
+3. Inspect the target and follow the callers, tests, and ownership boundaries that bear on the conclusion.
+4. Load the references that apply to the objective and scope above. Verify version-sensitive external facts before treating them as blockers.
 
 ## Review Branch
 
@@ -87,20 +86,18 @@ Complete the branch when every finding has a location, rule basis, concrete impa
 
 ## Simplify Branch
 
-1. Load `references/simplification-execution.md`, `references/simplicity-and-architecture.md`, and the applicable domain references.
-2. Establish the observable behavior and public contracts to preserve.
-3. Execute all four simplification passes and deduplicate their candidates.
-4. With `read-only` permission, return accepted candidates as advice. With `apply` permission, use one writer to apply only candidates that pass the preference and equivalence gate.
-5. Load `references/testing-and-validation.md`, validate applied changes in repository order, then load `references/simplify-output.md`.
+For a local change such as simplifying one function, inspect the callers and the observable behavior to preserve. Identify the concrete complexity removed. Run the closest check that exercises the affected behavior and any checks the project requires. Report the change, the basis for equivalence, and the observed result or validation gap.
 
-Complete the branch when all four passes ran, every applied change has an equivalence basis and observed validation result, incidental correctness risks remain separate, and no unrelated file changed.
+For a cross-module change or a request for comprehensive simplification, follow the four passes in `references/simplification-execution.md`. Use the same behavior contract and write boundary for all passes.
+
+With read-only permission, return candidates as advice. With apply permission, change only candidates with a credible basis for equivalence. Report incidental behavior changes separately.
 
 ## Verification
 
 Before finalizing, verify:
 
 - The target, objective, permission, and write scope are clear.
-- Repository rules and relevant references were loaded.
+- Applicable project rules and references were considered.
 - The target and surrounding ownership context were inspected.
 - Version-sensitive claims were verified.
 - Findings identify their basis and concrete impact.

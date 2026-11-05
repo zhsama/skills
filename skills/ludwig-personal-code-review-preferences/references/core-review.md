@@ -1,6 +1,6 @@
 # Core Review and Simplification
 
-Load this reference for every review and simplification.
+Use this reference for reviews and comprehensive simplifications.
 
 ## Rule Basis
 

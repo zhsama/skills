@@ -37,6 +37,6 @@ Describe the reduction in owned complexity and any residual risk in one sentence
 - Explain every skipped high-value candidate and whether it needs wider scope, evidence, or separate behavior-change authorization.
 - Keep incidental correctness risks separate and use the rule basis and severity from `output.md` when ranking them.
 - Report exact observed validation commands and outcomes.
-- Disclose when the four passes ran sequentially because independent reviewer agents were unavailable.
+- Identify any independent review the user requested that could not be completed.
 - If no candidate passes the gate, say that no high-confidence behavior-preserving simplification was found and list only useful residual risks.
 - Omit empty sections and avoid raw JSON, full logs, large diffs, transcript history, line-count celebration, or generic praise.
