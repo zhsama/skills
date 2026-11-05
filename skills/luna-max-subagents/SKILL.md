@@ -1,27 +1,25 @@
 ---
 name: luna-max-subagents
-description: "由主 agent 创建 gpt-5.6-luna、max 推理强度的 subagent，并协调与汇总结果。用户未指定数量时默认为 3 个，主 agent 也可按任务自行决定数量。用于用户要求 Luna Max 子代理协作时。"
+description: "Use when the user requests Luna Max subagents. The lead delegates to gpt-5.6-luna with max reasoning effort, coordinates the work, and checks the results. Default to three subagents unless the user specifies a count or the task calls for a different one."
 compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoning effort, and the documented dispatch and coordination parameters."
 ---
 
 # Luna Max Subagents
 
-主 agent 保持当前模型，负责理解任务、分配工作、整合和验证结果。子代理统一使用 `gpt-5.6-luna`，推理强度为 `max`。
+The lead keeps its current model, interprets the request, assigns work, integrates the results, and verifies them. Each subagent uses `gpt-5.6-luna` with `max` reasoning effort.
 
-## 数量与任务
+## Count and assignments
 
-从用户当前及后续 prompt 读取子代理数量、各自任务和限制。本技能不预设任务，也不因被加载就立即创建子代理。用户未指定数量时，默认创建 3 个；主 agent 也可以按任务自行决定数量。
+Use the current request and any follow-ups to determine the goals, count, and limits. Loading this skill does not by itself start any agents or define their tasks.
 
-- 用户给出数量和分工时，按指定执行；只给出总体任务时，在所选数量内拆分工作。
-- 用户未指定数量时使用 3 个。任务形态明显不适合 3 个时，主 agent 自行选择数量并说明理由，不必先询问。
-- 任务内容缺失且无法从上下文确定时，简短询问任务；数量不因此停下来问。
-- 后续 prompt 调整已有分工时，优先给对应子代理发送补充任务；明确要求新增时才增加数量。
+- Honor a specified count and division of work. If the user gives only a goal, divide it among the chosen number of agents.
+- Default to three when no count is specified. If another count clearly fits the task better, choose it and briefly explain why without pausing for permission.
+- If the task itself is missing and cannot be inferred from context, ask a short question about the task.
+- When a follow-up changes an existing assignment, send it to the responsible subagent. Add agents only when explicitly requested.
 
-## 创建子代理
+## Create the subagents
 
-使用运行时的子代理工具，例如 `collaboration.spawn_agent`；不要用创建 Codex 侧栏任务的工具代替。
-
-每次创建明确传入：
+Use the runtime's subagent tool, such as `collaboration.spawn_agent`, to delegate within the current chat. Pass the dispatch settings explicitly as shown below.
 
 ```json
 {
@@ -29,18 +27,18 @@ compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoni
   "model": "gpt-5.6-luna",
   "reasoning_effort": "max",
   "fork_turns": "none",
-  "message": "具体任务、必要上下文、可访问的文件或资源、交付要求和操作范围。"
+  "message": "Inspect the API. Include task-specific context, available files or resources, deliverables, and permitted actions."
 }
 ```
 
-示例中的名称和任务正文按实际分工替换。`task_name` 使用不重复的小写字母、数字和下划线。显式覆盖模型时不要使用 `fork_turns: "all"`；使用 `none` 并在消息中提供足够上下文，或使用运行时支持的有限历史数量。
+Adapt the task name and message to the assignment. Use unique lowercase letters, digits, and underscores for `task_name`. When overriding the model, use `fork_turns: "none"` and include the necessary context in the message, or use limited history if the runtime supports it. A full-history fork does not support this model override.
 
-每个任务应有明确边界。共享工作目录时明确文件责任与依赖，避免并发覆盖同一处修改。子代理完成被分配的工作即可，不自行扩增子代理数量。
+Give each task clear boundaries. In a shared working directory, assign file ownership and identify dependencies so concurrent edits do not overwrite one another. Each subagent completes its assigned task without creating additional subagents.
 
-遵守运行时并发上限；超出上限时，若支持释放名额则分批创建，否则说明限制并让用户选择可行安排，不悄悄减少数量。若子代理工具、指定模型或 `max` 不可用，说明具体限制，不擅自更换模型或推理强度。
+Honor the runtime's concurrency limit. If slots can be released, dispatch in batches. Otherwise, explain the limit and let the user choose a feasible arrangement. If the tool, model, or `max` reasoning effort is unavailable, report the specific limitation rather than silently reducing the requested count or changing models or effort.
 
-## 协调与交付
+## Coordinate and deliver
 
-主 agent 在子代理工作期间推进独立的协调、检查或整合工作，处理依赖及用户补充要求。使用返回的 agent ID 跟踪、发送消息和等待结果，不重复创建同一任务。
+While the subagents work, the lead can coordinate, inspect, and integrate independent parts of the task. Handle dependencies and later instructions. Use the returned agent IDs to send messages and wait for results without duplicating assignments.
 
-收齐结果后检查是否覆盖用户指定的全部任务，解决冲突并执行任务所需的验证，再给出统一结果和剩余问题。创建子代理不等于完成任务；子代理的操作权限沿用用户对当前工作的授权范围。
+Once all results are in, check coverage of every requested task, resolve conflicts, and perform the required validation. Report the combined result and remaining issues. Dispatch alone does not complete the task. Each subagent operates only within the user's authorization.

@@ -1,4 +1,4 @@
 interface:
   display_name: "Ludwig Review"
-  short_description: "按 Ludwig 偏好审查或等价简化 TypeScript 代码"
-  default_prompt: "使用 $ludwig-personal-code-review-preferences，审查当前目标；当我明确要求 simplify 时，保持行为不变并完成验证。"
+  short_description: "Review or simplify TypeScript using Ludwig's preferences"
+  default_prompt: "Use $ludwig-personal-code-review-preferences to review the current target. If I explicitly ask to simplify it, preserve its behavior and verify the result."

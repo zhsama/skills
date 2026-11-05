@@ -107,7 +107,7 @@ def worktree_rows(repo, worktrees, default, commands):
         label = wt["branch"] or ("detached " + wt["head"][:8])
         remove = ["git", "-C", repo, "worktree", "remove", path]
         if not os.path.isdir(path):
-            rows.append(Row(path, 0, "worktree", "A", f"`{label}` 目录已不存在", "`git worktree prune`",
+            rows.append(Row(path, 0, "worktree", "A", f"`{label}` directory no longer exists", "`git worktree prune`",
                             command=["git", "-C", repo, "worktree", "prune"]))
             continue
         dirty = is_git_dirty(path)
@@ -115,20 +115,20 @@ def worktree_rows(repo, worktrees, default, commands):
         ts = git(["log", "-1", "--format=%ct"], path).strip()
         days = age_days(int(ts)) if ts.isdigit() else "?"
         size = sizes.get(path, 0)
-        base = f"`{label}`，最后提交 {days} 天前"
+        base = f"`{label}`, last commit {days} days ago"
         if dirty:
-            rows.append(Row(path, size, "worktree", "C", base + "，有未提交改动", "不动"))
+            rows.append(Row(path, size, "worktree", "C", base + ", uncommitted changes", "Leave in place"))
         elif in_use:
-            rows.append(Row(path, size, "worktree", "C", base + f"，{len(in_use)} 个进程在用", "不动"))
+            rows.append(Row(path, size, "worktree", "C", base + f", in use by {len(in_use)} processes", "Leave in place"))
         elif is_merged(repo, wt["head"], default):
-            rows.append(Row(path, size, "worktree", "A", base + f"，干净，已并入 `{default}`",
-                            "`git worktree remove`（分支保留）", command=remove))
+            rows.append(Row(path, size, "worktree", "A", base + f", clean, merged into `{default}`",
+                            "`git worktree remove` (keeps the branch)", command=remove))
         elif upstream_gone(repo, wt["branch"]):
-            rows.append(Row(path, size, "worktree", "A", base + "，干净，上游分支已删除",
-                            "`git worktree remove`（分支保留）", command=remove))
+            rows.append(Row(path, size, "worktree", "A", base + ", clean, upstream removed",
+                            "`git worktree remove` (keeps the branch)", command=remove))
         else:
-            rows.append(Row(path, size, "worktree", "B", base + "，干净但未并入（可能 squash merge）",
-                            "`gh pr list --head` 确认后 `git worktree remove`", command=remove))
+            rows.append(Row(path, size, "worktree", "B", base + ", clean and unmerged (possibly squash-merged)",
+                            "Check `gh pr list --head` before `git worktree remove`", command=remove))
     return rows
 
 
@@ -171,8 +171,8 @@ def artifact_rows(wt_path, min_kib):
             continue
         candidates.append((os.path.join(wt_path, rel), tier))
     sizes = du_many([p for p, _ in candidates])
-    meta = {"A": ("构建/测试产物", "删，构建时重建"), "B": ("依赖目录", "删后需重装依赖")}
-    rows = [Row(path, sizes.get(path, 0), meta[tier][0], tier, "gitignore 命中，无 tracked 文件", meta[tier][1],
+    meta = {"A": ("Build/test artifacts", "Remove and rebuild as needed"), "B": ("Dependencies", "Reinstall dependencies after removal")}
+    rows = [Row(path, sizes.get(path, 0), meta[tier][0], tier, "Ignored by Git, contains no tracked files", meta[tier][1],
                 command=rm_command(path)) for path, tier in candidates]
     return fold_small(rows, min_kib, wt_path)
 
@@ -204,16 +204,16 @@ def temp_rows(project_name, registered, min_kib):
             continue
         is_dir = e.is_dir(follow_symlinks=False)
         dirty = is_git_dirty(e.path) if is_dir else None
-        evidence = f"名字含 `{project_name}`，改动于 {days} 天前"
+        evidence = f"Name contains `{project_name}`, modified {days} days ago"
         if MKTEMP_SUFFIX.search(e.name):
-            evidence += "，mktemp 后缀"
+            evidence += ", mktemp suffix"
         size = sizes.get(e.path, 0)
         if dirty:
-            rows.append(Row(e.path, size, "临时目录", "C", evidence + "，git 有未提交改动", "不动"))
+            rows.append(Row(e.path, size, "Temporary directory", "C", evidence + ", uncommitted Git changes", "Leave in place"))
         elif days < 1:
-            rows.append(Row(e.path, size, "临时目录", "B", evidence, "24 小时内改动过，确认后删", command=rm_command(e.path)))
+            rows.append(Row(e.path, size, "Temporary directory", "B", evidence, "Modified in the last 24 hours. Confirm before removal", command=rm_command(e.path)))
         else:
-            rows.append(Row(e.path, size, "临时目录", "A", evidence, "删", command=rm_command(e.path)))
+            rows.append(Row(e.path, size, "Temporary directory", "A", evidence, "Remove", command=rm_command(e.path)))
     folded = []
     for root in {os.path.dirname(r.path) for r in rows}:
         folded.extend(fold_small([r for r in rows if os.path.dirname(r.path) == root], min_kib, f"{root}/*{project_name}*"))
@@ -249,7 +249,7 @@ def main():
     if args.json:
         print(json.dumps([r.as_dict() for r in rows], ensure_ascii=False, indent=2))
     else:
-        print(render_table(rows, args.min_mib * 1024, f"仓库 `{top}`（只读扫描）"))
+        print(render_table(rows, args.min_mib * 1024, f"Repository `{top}` (read-only scan)"))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
 interface:
   display_name: "Issue Brief"
-  short_description: "按最近发展区挑选进阶开源问题，明确成长点并复现、讲清原理与修复方向"
-  default_prompt: "使用 $issue-brief，依据我的近期贡献和交流选择一个聚焦单一主要能力提升的 issue，说明已有基础、新增挑战、所需支持和掌握标准，尝试复现并讲清问题与修复方向。"
+  short_description: "Find and explain a bug that develops one specific skill"
+  default_prompt: "Use $issue-brief to choose an issue based on my recent contributions. Identify the growth area and how to demonstrate it, try to reproduce the issue, and explain the mechanism and repair direction."

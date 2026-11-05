@@ -42,19 +42,19 @@ def verify(row, commands):
     paths = [p for p in real_paths(row) if os.path.lexists(p)]
     if real_paths(row) and not paths:
         # `git worktree prune` exists precisely because the directory is gone.
-        return None if "prune" in row["command"] else "路径已不存在"
+        return None if "prune" in row["command"] else "Path no longer exists"
     for p in paths:
         if any(command_uses_path(p, c) for c in commands):
-            return f"有进程在用 {p}"
+            return f"A process is using {p}"
         top = git(["rev-parse", "--show-toplevel"], p if os.path.isdir(p) else os.path.dirname(p)).strip()
         if not top:
             continue
         if os.path.realpath(top) == os.path.realpath(p):
             # Reason: the target is a whole worktree; only a clean one may go.
             if is_git_dirty(p):
-                return f"worktree 有未提交改动 {p}"
+                return f"Worktree has uncommitted changes at {p}"
         elif git(["ls-files", "--", os.path.relpath(p, top)], top).strip():
-            return f"含 tracked 文件 {p}"
+            return f"Tracked files under {p}"
     return None
 
 
@@ -109,7 +109,7 @@ def pnpm_store_prune():
     if out.strip():
         print(out.strip())
     if proc.returncode != 0:
-        print("pnpm store prune 失败")
+        print("pnpm store prune failed")
         return None
     return parse_reported_free_kib(out)
 
@@ -144,8 +144,8 @@ def main():
 
     before = avail_kib()
     mode = "EXECUTE" if args.execute else "DRY RUN"
-    print(f"[{mode}] 可用 {gib(before)} GiB，候选 {len(chosen)} 行\n")
-    print("| # | 路径 | GiB | 级 | 命令 | 结果 |")
+    print(f"[{mode}] {gib(before)} GiB available, {len(chosen)} candidate rows\n")
+    print("| # | Path | GiB | Tier | Command | Result |")
     print("|---:|---|---:|:-:|---|---|")
     freed_est = 0
     for r in chosen:
@@ -153,17 +153,17 @@ def main():
         cmd = " ".join(r["command"]) if r["command"] else ""
         cmd_short = (cmd[:80] + "…") if len(cmd) > 80 else cmd
         if r["tier"] == "C" or not r["command"]:
-            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | | 跳过：不可自动处理 |")
+            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | | Skipped (ineligible for automatic cleanup) |")
             continue
         if r["tier"] == "B" and r["id"] not in ids:
-            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | B | | 跳过：B 级需用 --rows 点名 |")
+            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | B | | Skipped (select tier B rows explicitly with --rows) |")
             continue
         reason = verify(r, commands)
         if reason:
-            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 跳过：{reason} |")
+            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | Skipped ({reason}) |")
             continue
         if not args.execute:
-            print(f"| {r['id']} | `{path}` | {gib(counted_kib(r))} | {r['tier']} | `{cmd_short}` | 将执行 |")
+            print(f"| {r['id']} | `{path}` | {gib(counted_kib(r))} | {r['tier']} | `{cmd_short}` | Would run |")
             freed_est += counted_kib(r)
             continue
         # The scan already measured an rm target. Walk it again only when a delete
@@ -179,10 +179,10 @@ def main():
             reported = parse_reported_free_kib(output)
             freed = reported if reported is not None else counted_kib(r)
         if errors and freed <= 0:
-            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | 失败：{errors[-1]} |")
+            print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | Failed ({errors[-1]}) |")
             continue
         freed_est += freed
-        note = f"完成，回收 {gib(freed)} GiB" if not errors else f"部分完成，回收 {gib(freed)} GiB；未删 {errors[-1]}"
+        note = f"Done, reclaimed {gib(freed)} GiB" if not errors else f"Partially completed, reclaimed {gib(freed)} GiB. Could not remove {errors[-1]}"
         print(f"| {r['id']} | `{path}` | {gib(r['size_kib'])} | {r['tier']} | `{cmd_short}` | {note} |")
 
     if args.execute:
@@ -191,10 +191,10 @@ def main():
             freed_est += pruned
         time.sleep(2)  # APFS reports freed space with a short delay
         after = avail_kib()
-        print(f"\n可用 {gib(before)} → **{gib(after)} GiB**（df 实测 +{gib(after - before)}；按命令输出累计 {gib(freed_est)}）")
-        print("APFS 可能延迟结算，几分钟后再 `df -h` 一次。")
+        print(f"\nAvailable space {gib(before)} → **{gib(after)} GiB** (df change {gib(after - before)} GiB, estimated reclamation {gib(freed_est)} GiB)")
+        print("APFS may report freed space later. Check `df -h` again in a few minutes.")
     else:
-        print(f"\n预计回收约 {gib(freed_est)} GiB。加 `--execute` 执行，结束时会跑 `pnpm store prune`。")
+        print(f"\nEstimated recovery: {gib(freed_est)} GiB. Use `--execute` to apply the plan and run `pnpm store prune` at the end.")
 
 
 if __name__ == "__main__":

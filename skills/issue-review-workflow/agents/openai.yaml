@@ -1,0 +1,4 @@
+interface:
+  display_name: "Issue Review Workflow"
+  short_description: "Verify issues and review fixes with two user approvals"
+  default_prompt: "Use $issue-review-workflow to verify the reported issues, have fresh reviewers recheck them, and bring me the findings to confirm."

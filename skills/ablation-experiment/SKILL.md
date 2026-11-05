@@ -1,70 +1,66 @@
 ---
 name: ablation-experiment
-description: "为代码、设计和测试开展消融实验：主 agent 准备实验设计与 Luna 子代理方案，用户明确确认后由 gpt-5.6-luna 执行，主 agent 核对原始证据并验收。用于用户要求通过消融验证必要性、精简设计或保证 KISS；普通代码审查不自动进入本流程。"
+description: "Run ablation experiments when the user asks to test whether code, a design choice, or a test is necessary, or whether it can be simplified. The lead proposes an experiment and a Luna team, waits for explicit approval, then checks the evidence returned by gpt-5.6-luna. An ordinary code review does not start an experiment."
 compatibility: "Requires a subagent runtime supporting gpt-5.6-luna, max reasoning effort, and the documented dispatch parameters, plus the target project's experiment tools."
 ---
 
 # Ablation Experiment
 
-主 agent 负责实验设计、流程、验证标准、异常决策和最终验收。Luna 负责按获批方案准备实验变体、实现执行脚本、运行测试与采样、保存证据。
+The lead owns experiment design, coordination, validation criteria, exceptions, and the final judgment. Luna prepares the approved variants, writes the execution scripts, runs tests and measurements, and preserves the evidence.
 
-固定顺序：**主 agent 准备并展示实验设计与子代理方案 → 用户明确同意 → 创建或派发 Luna 执行 → 主 agent 核对原始证据并验收。**
+## 1. Prepare the experiment and staffing plans
 
-## 1. 准备两项可确认的方案
+Read the relevant code, tests, configuration, versions, and existing experiment records. At this stage, prepare plans and execution instructions only. Wait for approval before starting the experiment, creating or resuming a subagent for it, or sending work to an existing agent. This applies to preliminary research delegated as part of the experiment and to runs by the lead.
 
-主 agent 先读取相关代码、测试、配置、版本及已有实验记录，根据当前任务准备方案。此阶段可以编写计划和执行说明；不得创建、恢复或向已有子代理派发本次实验工作，也不得提前运行实验。不要用委派“调研”或主 agent 自行运行来绕过确认。
+Present both plans together, with a recommendation and the reason for it.
 
-向用户同时展示以下两项，并给出推荐方案及理由：
+| Plan | What the user needs to decide |
+| --- | --- |
+| Experiment | Question, baseline, variants, controls, tests, performance metrics where relevant, decision criteria, and stopping conditions |
+| Subagents | Number of Luna agents, assignments, model and reasoning effort, read/write boundaries, dependencies, order, and deliverables |
 
-| 你要确认的内容 | 必须讲清楚 |
-|---|---|
-| 实验设计 | 验证什么、基线与变体、控制变量、测试和性能指标、如何判断结果、停止条件 |
-| 子代理方案 | 创建几个 Luna、各自任务、模型与推理强度、读写范围、依赖及执行顺序、交付要求 |
+### Experiment design
 
-### 实验设计
+- Identify the behavior contract and the source of complexity. Choose the design, code, or test to remove, replace, or combine. Give each variant a specific question. When mechanisms depend on one another, include the combinations needed to distinguish their effects.
+- Pin the baseline, target version, inputs, and relevant environment. Give each experiment an ID, exact change, steps, expected observation, decision rule, and stopping condition. The executor should be able to run it without redesigning it.
+- Check that the tests can detect the target failure. When ablating a test, check whether the remaining tests still catch the named regression. A green suite after removing production logic may indicate a coverage gap.
+- For performance experiments, specify metrics, noise checks, repetition count, sampling order, and acceptable variation. Run measurements serially on a shared machine, away from unrelated builds and load tests. Add performance work only when it bears on the question.
+- Separate a failure of the target behavior from a compilation failure, environment failure, or lack of evidence. Only a behavioral failure establishes that the removed mechanism was needed for that behavior.
 
-- 明确待验证的行为契约和复杂度来源，选择移除、替换或合并哪些设计、代码或测试。每个变体应能回答明确的问题；存在机制间依赖时，说明必要的组合对照。
-- 固定基线、待测版本、输入和关键环境。为每个实验标识 ID，写清具体改动、执行步骤、预期观察、判定标准和停止条件，使执行者不必重新设计实验。
-- 验证测试能否捕获目标故障。消融测试时，检查剩余测试是否仍能抓住指定回归；删除生产逻辑后全绿，可能意味着覆盖不足，不能直接证明逻辑多余。
-- 涉及性能时，明确指标、噪声检查、重复次数、采样顺序及可接受差异；同机性能采样串行安排，避免其他构建或压测干扰。无关的性能实验不强行加入。
-- 区分目标行为失败、编译失败、环境失败和证据不足。仅后几种结果不能证明被移除机制具有行为必要性。
+### Subagent plan
 
-### 子代理方案
+- Follow the user's requested agent count. Otherwise, three is the default and the lead may choose another count that fits the experiment. State the concurrency limit, how many agents will run together, and the order of any batches.
+- The default executor is `gpt-5.6-luna` with `max` reasoning effort. The lead keeps its current model.
+- Give each executor its experiment IDs, inputs, permitted paths, isolation arrangements, dependencies, run order, and output locations. Prevent agents from overwriting shared files or results.
+- Specify exception handling, permitted retries, and stopping conditions. Distinguish isolated variants from changes to the main workspace or permanent simplifications that require separate authorization.
 
-- 主 agent 提出数量与分工供用户确认。用户已指定数量时按其要求设计；未指定时默认 3 个，主 agent 也可以按实验自行决定数量。结合运行时并发上限，写明同时运行数量和必要的分批顺序。
-- 默认执行模型为 `gpt-5.6-luna`、推理强度 `max`。主 agent 保持当前模型。
-- 为每个执行者写清实验 ID、输入、允许读写的位置、隔离方式、依赖、运行顺序和输出位置，避免共享目录或产物相互覆盖。
-- 把异常处理、允许的重试和停止条件提前列入计划。实施正式代码精简或修改主工作区若不在当前授权内，应与隔离实验区分并说明。
+## 2. Obtain approval before dispatch
 
-## 2. 在派发之前取得确认
+**Wait for explicit approval of both the current experiment design and the subagent plan before dispatching any work or starting an experiment.**
 
-**在用户明确批准当前实验设计及子代理创建方案之前，不得创建、恢复或向已有子代理派发本次实验工作，也不得启动实验。**
+- Show both plans, ask the user to confirm them, and wait for a reply. Explain that this skill requires the pause and link to this section.
+- A general request for an ablation experiment, silence, a timeout, or agreement with just one plan leaves approval outstanding. Explicit agreement with the complete plan just presented is sufficient.
+- If the user requests changes, revise the affected design or assignments and present the revision for approval. Keep track of which version and conditions the user approved.
+- Obtain fresh approval for additional agents, a wider scope, a model change, a material change in method, read/write boundaries, or acceptance criteria. Continue ordinary execution and planned retries within the approved scope.
 
-- 完成并展示两项具体方案后，简短请求用户确认设计和子代理方案是否合理，然后等待回复。说明暂停来自本 skill，并链接本文件中的上述要求。
-- 普通的“做消融实验”请求、无回复、超时或只认可其中一项，均不构成对两项方案的批准。用户针对刚展示的完整方案明确表示同意，即可按该方案继续。
-- 用户提出修改时，先更新受影响的设计或分工，再展示修订方案并取得确认。记录当前方案及其对应的同意，避免遗漏条件或重复请求已经获得的批准。
-- 增加子代理、扩大实验范围、改变模型、关键实验方法、重要读写范围或验收标准，需要重新确认变更。获批范围内的正常执行和预定重试无需逐步询问。
+## 3. Dispatch and run the approved experiments
 
-## 3. 按获批方案派发和执行
+Follow the approved count and assignments. This skill contains the full dispatch procedure and can be used on its own.
 
-本节包含完整派发规则，无需安装其他 skill。数量和任务以用户刚确认的方案为准，无需再次询问。
+- Use the runtime's subagent tool. Keep the work within the current chat. Pass `model: "gpt-5.6-luna"`, `reasoning_effort: "max"`, and `fork_turns: "none"` explicitly. Include the necessary context and the approved execution instructions in each task.
+- If the subagent tool, model, or reasoning effort is unavailable, report the limitation. Do not substitute another model or run the experiment as the lead.
+- Luna may write variants and scripts. Before they run, the lead verifies that they implement the approved design faithfully. The lead identifies any correction, and Luna applies it.
+- Luna works within its assignment and does not create more agents or change the goal, controls, test semantics, sampling method, or decision criteria. For an unplanned condition, preserve evidence and return the question to the lead. The lead decides whether the plan needs revision and whether section 2 requires new approval.
+- The lead coordinates dependencies and run order. Luna executes the commands and any authorized supplemental experiments. Subagent permissions remain bounded by the approved scope.
 
-- 使用运行时 subagent 工具，不创建侧栏任务。显式传入 `model: "gpt-5.6-luna"`、`reasoning_effort: "max"` 和 `fork_turns: "none"`，在任务消息中提供足够上下文与获批执行说明。
-- 若子代理工具、模型或推理强度不可用，报告限制，不擅自换用其他模型或让主 agent 代跑。
-- Luna 可以按方案编写变体和脚本；主 agent 在实验运行前审核它们是否忠实表达获批设计。脚本和变体需要修正时，由主 agent 明确修正要求，Luna 实施。
-- Luna 不自行新增子代理，不自行改变目标、对照、测试语义、采样方法或判定标准。遇到超出计划的情况，保存证据并向主 agent 返回问题；主 agent 决定是否修订方案，并按上一节判断是否需要用户确认。
-- 主 agent 负责依赖协调和执行顺序，实验命令与补充实验交给 Luna 执行。子代理权限以获批范围为限。
+## 4. Review the evidence and decide
 
-## 4. 返回证据并由主 agent 验收
+Require Luna to return the following evidence for each experiment ID.
 
-要求 Luna 按实验 ID 返回：
+- The actual revision, environment, and variant diff.
+- The exact commands or tool calls, arguments, exit codes, and locations of raw logs and data.
+- The observations, whether the stopping condition was met, deviations from the plan, and unfinished steps.
 
-- 实际版本、环境与变体 diff。
-- 完整命令或工具调用及参数、退出码、对应原始日志和数据路径。
-- 实际观察结果、是否达到停止条件、偏离计划的事项及未完成步骤。
+Long output can stay in files. Give precise locations and distinguish plans, actual calls, observed results, and inferences. The lead inspects key diffs, calls, and raw results. Check that the experiment exercised the target path, failures had the expected cause, controls held, and the tests could detect the regression. If evidence is missing, design a follow-up and assign it to Luna within the approved scope.
 
-完整长输出可以保存在文件中，报告须提供准确定位。明确区分计划、实际调用、实际结果和推断；不能用汇总性声明代替原始证据。
-
-主 agent 必须读取报告、关键 diff、原始调用与结果，检查实验是否经过目标路径、失败原因是否符合预期、控制变量是否成立、测试是否具有检出能力。发现缺口时设计补充验证，再按批准范围交给 Luna 执行。
-
-最终说明每项设计或测试应保留、可精简或证据不足，给出对应实验和依据，以及剩余风险、未完成工作和必要的用户输入。不要把普通测试通过、审查建议或尚未执行的计划当作消融完成。
+For each design element or test, state whether to keep it, simplify it, or leave the decision open. Cite the experiment, remaining risks, unfinished work, and decisions needed from the user. Passing ordinary tests, a review recommendation, or an unexecuted plan is insufficient evidence of completed ablation.

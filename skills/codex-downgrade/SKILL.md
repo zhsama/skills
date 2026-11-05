@@ -1,20 +1,20 @@
 ---
 name: codex-downgrade
-description: "检查 Codex 实际服务模型是否低于所选模型。用于用户问是否被降级、换模型、reroute、safety buffering、配额导致 fallback，或要求审计当前/最近 session。"
+description: "Audit the model that actually served a Codex session. Use when the user suspects a downgrade, model swap, reroute, safety buffering, quota-related fallback, or asks to audit the current or recent sessions."
 compatibility: "Requires Python 3.11+ and access to local Codex session and configuration files. Online probing additionally requires network access and Codex ChatGPT credentials."
 ---
 
 # Codex Downgrade
 
-判断 Codex 实际服务的模型是不是用户选的那个。只采信服务端自己声明的 model slug / 路由头 / 客户端 reroute 日志，不看回答质量。
+Check whether Codex served the model the user selected. Use the model slug declared by the backend, routing headers, and client reroute logs as evidence. Answer quality cannot establish which model served a request.
 
-脚本：`scripts/codex_downgrade.py`（Python 3.11+，标准库）。默认读 `$CODEX_HOME` 或 `~/.codex`。
+The detector at `scripts/codex_downgrade.py` uses the Python 3.11+ standard library. It reads from `$CODEX_HOME`, or `~/.codex` by default.
 
-## 何时跑哪种检查
+## Choose the check
 
-用户没指定时，先跑 `session`。只有用户明确要求「现在去官方后端探测一下」时才跑 `official`（会发一条真实请求、消耗额度）。
+Start with `session` unless the user specifies otherwise. Run `official` only when the user explicitly asks to probe the official backend now. It sends a real request and consumes quota.
 
-当前会话 ID 若已知，优先 `--session-id`；否则 `--sessions 3`。
+Use `--session-id` if the current session ID is known. Otherwise start with `--sessions 3`.
 
 ```bash
 SCRIPT="$HOME/.codex/skills/codex-downgrade/scripts/codex_downgrade.py"
@@ -24,23 +24,21 @@ python3 "$SCRIPT" session --session-id <uuid-or-prefix>
 python3 "$SCRIPT" official --model gpt-6-astra
 ```
 
-`--json` 给机器读；`--redact` 给要贴出去的报告；`--evidence` 展开原始证据。
+Use `--json` for machine-readable results, `--redact` for a report intended for sharing, and `--evidence` to show the raw evidence.
 
-## 怎么报结果
+## Report the result
 
-先报 verdict 和 exit code，再列 findings。
+Give the verdict and exit code first, then the findings.
 
 | Exit | Verdict |
-|---|---|
-| 0 | 没发现降级 |
-| 2 | 有风险或证据不足（header 被剥、配额高、日志里比对根本没跑过） |
-| 3 | 确认降级 / reroute，或模型不可用 |
-| 1 | 工具自己失败 |
+| --- | --- |
+| 0 | No downgrade detected |
+| 2 | Risk or insufficient evidence, such as missing headers, high quota usage, or logs showing that the comparison never ran |
+| 3 | Confirmed downgrade or reroute, or the requested model is unavailable |
+| 1 | The detector itself failed |
 
-证明级代码（任一即降级）：`MODEL_DOWNGRADED`、`MODEL_MISMATCH`、`VENDOR_MISMATCH`、`MODEL_UNRECOGNIZED`、`PROVIDER_SWITCHED_MID_SESSION`、`LOG_SERVER_MODEL_MISMATCH`、`LOG_PROVIDER_FALLBACK`、`LOG_MODEL_REROUTE_EVENT`、`SAFETY_BUFFERING_APPLIED`。
+The detector treats any of the following codes as confirmation. `MODEL_DOWNGRADED`, `MODEL_MISMATCH`, `VENDOR_MISMATCH`, `MODEL_UNRECOGNIZED`, `PROVIDER_SWITCHED_MID_SESSION`, `LOG_SERVER_MODEL_MISMATCH`, `LOG_PROVIDER_FALLBACK`, `LOG_MODEL_REROUTE_EVENT`, `SAFETY_BUFFERING_APPLIED`.
 
-`LOGSCAN_UNCORROBORATED` / `HEADERS_STRIPPED` / `NO_SERVED_MODEL` 是缺证据，不是通过。不要把「没找到 mismatch 日志」说成「没有降级」。
+`LOGSCAN_UNCORROBORATED`, `HEADERS_STRIPPED`, and `NO_SERVED_MODEL` indicate missing evidence. An absent mismatch log does not establish that no downgrade occurred.
 
-`official` 需要 `auth.json` 里 `auth_mode: chatgpt`。API-key 安装只能用 `session`。
-
-不要用 `chatgpt_route_check.user.js`；那是 chatgpt.com 网页脚本，和 Codex App 无关。
+`official` requires `auth_mode: chatgpt` in `auth.json`. API-key installations can use `session` only. The `chatgpt_route_check.user.js` userscript is for chatgpt.com and does not apply to the Codex app.

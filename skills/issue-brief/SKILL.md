@@ -1,115 +1,101 @@
 ---
 name: issue-brief
-description: "依据用户近期贡献和交流，按“最近发展区”挑选适合进阶的公开项目 bug：每次聚焦一个主要能力维度的提升——机制理解、因果定位、设计判断或验证方法，其余前置能力应已有依据或可由简短支持补足。明确已有基础、新增挑战和可观察的掌握标准，根据后续表现调整选题。核对接手状态、尝试复现，并逐步讲清问题与修复方向；也用于深入理解指定 issue，默认止于分析和建议。"
+description: "Choose a public project bug just beyond the user's demonstrated experience. Target one growth area in mechanism understanding, causal diagnosis, design judgment, or verification. Check whether the issue is already claimed, try to reproduce it, and explain the mechanism and repair direction. Also use for an in-depth look at a specific issue. Default to analysis and advice."
 ---
 
 # Issue Brief
 
-## 目标与范围
+## Scope
 
-返回一个略高于用户当前独立处理能力、在必要支持下预计能够完成的 issue，以及一份可以独立读懂的中文讲解。假设用户有编程经验，但没有这个 issue 的前情提要，也不熟悉其中的专用概念。读完后，用户应能解释问题、判断证据，并参与修复方案讨论。
+Recommend an issue the user could complete with limited support, just beyond what they can currently do independently. Give a self-contained explanation in Chinese. Assume programming experience but no prior knowledge of the issue or its terminology. The user should be able to explain the problem, weigh the evidence, and discuss a fix.
 
-默认完成到问题理解和修复建议。可以在隔离目录或 worktree 中建立复现，保留必要的命令和结果；不修改用户现有工作区，不认领 issue、修改标签、发送评论、提交代码或创建 PR。用户另有明确授权时，遵循当次请求，不把分析或建议视为实施授权。
+By default, stop at understanding the problem and suggesting a repair. Use an isolated directory or worktree for reproduction and retain the necessary commands and results. Preserve the user's working tree. Claiming an issue, changing labels, posting comments, committing code, or opening a PR requires separate authorization. Follow any explicit authorization in the current request.
 
-## 确定研究范围
+## Choose the research scope
 
-按以下优先级确定范围：
+Choose the first applicable scope in this order.
 
-1. 用户指定了 issue：直接分析，跳过选题。即使已经解决，也解释其原因和解决方式。
-2. 用户指定了仓库、版本或方向：遵循指定范围。
-3. 当前会话或工作目录对应公开仓库：优先该仓库的上游项目。核对 remote 和 fork 关系，不只根据目录名判断。
-4. 否则查看用户近期提交 PR 的公开项目，从中选择。
+1. If the user supplies an issue, analyze it directly. If already resolved, explain the cause and resolution.
+2. Respect any repository, version, or topic the user specifies.
+3. If the chat or working directory points to a public repository, prefer its upstream. Check the remote and fork relationship.
+4. Otherwise, choose from public projects to which the user has recently submitted PRs.
 
-使用当前环境可用的 GitHub 工具或 `gh` 获取身份和实时信息，不硬编码用户名、仓库或版本。能从上下文和 Git remote 确定的信息直接读取；只有范围仍无法确定且会明显影响结果时，才提出一个简短问题。访问受阻时说明缺少什么证据，不把旧记录当成当前状态。
+Use the available GitHub tools or `gh` for identity and current state. Read the repository and version from the task and Git remote rather than hardcoding them. Ask one short question only if the remaining ambiguity would change the result. If access fails, identify the missing evidence and distinguish historical records from current status.
 
-## 挑选一个合适的 issue
+## Select an issue
 
-查看相关项目中用户近期 PR 的实际改动、测试和评审反馈，结合交流中表现出的理解，判断用户能独立完成什么、在哪些环节需要支持。优先复用当前会话已有的经验记录，必要时定向读取相关 session，不每次扫描全部历史会话。证据不足时明确能力判断的不确定性；只有这会改变选题时，才定向询问相关经验。
+Read the changes, tests, and review feedback in the user's relevant recent PRs. Use their demonstrated understanding to identify what they can already do and where they might need support. Reuse evidence from this chat. Consult a specific past session only when needed. State uncertainty about experience and ask about it only when it would change the choice.
 
-### 能力跨度与支持边界
+### Choose a manageable stretch
 
-用“最近发展区”指导选题：任务超出当前独立能力，但在背景解释、代码入口和诊断提示的支持下预计能够推进。以下是结合编程与系统课程制定的操作边界，不是通用的教育学难度公式。
+Use the zone of proximal development as a selection guide. Pick a task that the user could advance independently after a short explanation, a code entry point, or a diagnostic hint. The following examples are practical guides informed by programming and systems courses, not a universal difficulty scale.
 
-每次聚焦一个主要能力维度的提升：
-
-| 能力维度 | 相邻进阶示例 |
+| Growth area | Example of a next step |
 | --- | --- |
-| 机制理解 | 从会调用 API，到能解释其内部状态变化 |
-| 因果定位 | 从跟踪单条执行路径，到分析两个操作的交错 |
-| 设计判断 | 从修改局部逻辑，到判断模块职责并维护跨模块契约 |
-| 验证方法 | 从普通输入输出测试，到确定性调度、故障注入或性能对照 |
+| Mechanism understanding | Go from calling an API to explaining its internal state transitions. |
+| Causal diagnosis | Go from tracing one execution path to explaining how two operations interleave. |
+| Design judgment | Go from changing local logic to assigning module responsibilities and preserving a cross-module contract. |
+| Verification | Go from input/output checks to controlled scheduling, fault injection, or a performance comparison. |
 
-这些示例不是固定等级；按当前用户在各维度的实际证据判断。其他维度应有已有经验支持，或能由现成工具和简短说明补足。如果两个及以上维度都需要系统性补课，就暂时排除该候选。不要按新名词或改动文件数量判断：多个概念、模块可以共同服务一个明确的机制或不变量，但不能把“学会分布式系统”这样的大领域当成一个能力缺口。
+Choose one primary growth area. Look for evidence that the other prerequisites are already in place or can be supplied by existing tools and a short explanation. Set aside candidates that require substantial study in two or more areas. Judge the mechanism or invariant involved rather than counting unfamiliar terms or changed files. A broad subject like distributed systems is too large to count as one missing skill.
 
-提供必要支持后，用户应预计能自行提出下一步假设或实验，推进修复和验证。如果需要逐步照抄完整方案才能前进，应降低选题跨度或补足前置知识。不要把构建环境障碍、需求未定或缺少观测手段当作成长点；除非工具或验证方法本身就是本次练习目标，否则优先选择这些条件已具备的候选。
+With the intended support, the user should be able to propose the next hypothesis or experiment and advance the fix. If they would need to copy a complete solution step by step, narrow the challenge or support the prerequisite first. Prefer candidates with a workable build, defined requirements, and adequate observability unless the learning objective is the tooling or method itself.
 
-这一设计借鉴 [Nand to Tetris 的分阶段实现与测试支撑](https://www.nand2tetris.org/project07)、[CS:APP 的单项练习与综合实验](https://csapp.cs.cmu.edu/3e/labs.html)、[xv6 围绕写时复制组织跨模块任务](https://pdos.csail.mit.edu/6.1810/2025/labs/cow.html)、[MIT Raft 实验的故障模拟和反馈](https://pdos.csail.mit.edu/6.824/labs/lab-raft1.html)，以及 [HtDP 用设计步骤定位学习困难](https://htdp.org/2024-8-20/Book/part_one.html)。这些是选题设计依据，不要求每次推荐都重新研究课程。
+The selection approach draws on staged implementation and tests in Nand to Tetris, focused and integrated labs in CS:APP, an xv6 task organized around copy-on-write, fault simulation in the Raft labs, and HtDP's use of design steps to locate difficulties. These inform selection and need not be researched again for each recommendation. [Nand to Tetris](https://www.nand2tetris.org/project07) · [CS:APP](https://csapp.cs.cmu.edu/3e/labs.html) · [xv6](https://pdos.csail.mit.edu/6.1810/2025/labs/cow.html) · [Raft lab](https://pdos.csail.mit.edu/6.824/labs/lab-raft1.html) · [HtDP](https://htdp.org/2024-8-20/Book/part_one.html)
 
-### 候选筛选
+### Screen candidates
 
-优先选择：
+Prefer a real defect with clear expected behavior, an identifiable code entry point, an observable acceptance condition, and an existing or reasonably inexpensive reproduction. Be able to explain what the user would learn beyond their previous work. Check whether another contributor is working on a substantive fix or an existing PR already covers it.
 
-- 真实代码缺陷，预期行为明确。
-- 满足上述能力跨度，能说明相对于已有经验增加了什么挑战，而非重复熟练套路。
-- 围绕明确行为或不变量，有代码入口和可观察的验收结果。
-- 有可用复现，或能以合理成本构造复现。
-- 未发现他人正在实质修复，也未被现有 PR 覆盖。
+Consider the effort needed to understand the problem, prepare the test environment, follow cross-module effects, and resolve design disputes. Changed lines and `good first issue` labels alone are poor measures. Participation in one PR does not establish mastery of an entire area. Ease alone does not justify recommending a documentation move.
 
-难度不能只按改动行数或 `good first issue` 标签判断。同时考虑理解成本、测试环境、跨模块影响和设计争议。不要把用户参与过某个 PR 等同于已经掌握整个领域，也不要仅因容易就推荐文档迁移。
+Compare a few strong candidates internally. Recommend one by default, or the number the user explicitly requests. Independent searches can run in parallel. Stay within the chosen scope, and exclude work the user is already doing unless they ask to continue it.
 
-内部比较少量有竞争力的候选，最终默认只推荐一个；用户明确要求多个时按其数量返回。独立检索可以并行，但不要为凑数量扩大研究范围。排除当前上下文中用户已经在处理的 issue，除非用户要求继续。
+Read the issue body, comments, assignees, linked PRs, cross-references, and current code. An unassigned issue can already be claimed. A closed issue or PR is not proof that the current behavior was fixed. Check whether maintainers are still debating the expected behavior.
 
-读取候选的正文、评论、负责人、关联 PR、交叉引用及当前代码。没有 assignee 不等于无人接手；历史 issue 或 PR 被关闭也不等于问题已经修复。检查维护者是否仍在讨论预期行为，避免将设计未定的问题描述成可直接实现的修复。
+Recheck ownership before recommending a candidate. Qualify the result, for example, "I found no public claim or active fix." If no candidate fits, explain why. Leave out unrelated or already claimed issues.
 
-最终推荐前重新核对接手状态，以“未发现公开认领或进行中的修复”等有证据边界的措辞描述。若没有合适候选，说明具体原因，不用无关或已被接手的 issue 凑数。
+## Build the evidence
 
-## 建立证据
+Identify the environment, trigger, expected result, and observed result. Try the smallest reproduction that exercises the reported behavior.
 
-确定报告中的环境、触发操作、预期结果和实际结果。尝试运行最小复现：
+- Work in isolation. Record the key versions, source revision, platform, and configuration.
+- Start with the reported version, then compare with the current main branch or a relevant release when needed.
+- Verify that the reproduction exercises the target code path. Configuration changes can bypass the original fault.
+- Check observable behavior and output as well as the exit code.
+- Use a control that distinguishes competing explanations when needed.
 
-- 使用隔离环境，记录关键版本、源码 revision、平台和配置。
-- 先确认报告版本，再视需要对照当前主线或最新相关版本。
-- 确认复现确实经过目标代码路径；配置变化可能使旧复现绕过问题。
-- 检查真实行为和输出，不只依赖退出码。
-- 需要时设置一个能区分原因的对照组，而不是无目的地扩大测试矩阵。
+Keep build and environment work proportional to the issue. If the platform or a reasonable blocker prevents reproduction, record the limitation, completed investigation, and runnable reproduction steps. Label simulations, source-level reasoning, and the author's report accurately. Prefer an equally suitable candidate with direct evidence over an unverified hypothesis.
 
-环境修复和构建成本应与问题范围相称。当前平台无法复现，或合理尝试后仍受阻时，记录限制、已完成的调查和可执行的复现步骤。跨平台模拟、静态推演和阅读报告不能写成“已复现”。未复现的候选不应仅凭推测排在同等匹配且已有充分证据的候选之前。
+Trace the actual input and configuration through processing and intermediate state to output or error. Establish expected behavior from project documentation, existing tests, historical fixes, and relevant stable versions or implementations. For third-party behavior, use primary sources matching the project's version. Using the newest version is not an automatic reason to change the current contract.
 
-沿实际执行链定位：输入和配置 → 处理阶段 → 中间状态 → 输出或错误。
+Separate what you ran from what an author or maintainer reported and what you inferred from code. Include history only when it explains the current issue. If the introducing commit is unknown, leave it unknown. If the cause is uncertain, identify the last verified step and an experiment that could distinguish the remaining explanations.
 
-调查正常行为的依据：项目文档、既有测试、历史修复，以及适用时的成熟版本或对应实现。第三方行为使用与实际版本匹配的官方资料。不要默认旧版本的所有行为都必须保留，先核对项目的兼容约定。
+## Explain the result
 
-明确区分本次实际验证的事实、issue 作者或维护者报告的事实，以及根据代码提出但尚未验证的推断。只讲与理解问题有关的历史；找不到引入问题的提交时，不推测是哪次重构导致的。根因尚未证实时，指出已定位到哪里、还需什么实验来区分解释。
+Organize the explanation in the following reading order. Combine adjacent parts when useful.
 
-## 组织讲解
+1. **Recommendation.** Link the issue and describe the user's problem in one sentence. Give evidence of the user's existing foundation, the primary growth area, the new challenge, the support needed, and the ownership status and check date. For a specified issue, introduce the problem directly without grading its suitability.
+2. **Scenario.** Pick one concrete example and use it throughout. Identify the caller, command or operation, configuration, environment, and visible impact.
+3. **Expected behavior.** Explain the feature's purpose and normal flow. Introduce only the terms the reader needs, as each becomes relevant.
+4. **Failure and cause.** Use the same example to show where behavior diverges and how the effect reaches the user. Then name the relevant functions, fields, and source locations. Distinguish the trigger, root cause, and final error site.
+5. **Reproduction evidence.** Give the key environment, minimal steps, expected and observed results, and any useful control. Say what you ran personally. Identify what is still unknown if the run failed or the evidence is incomplete.
+6. **Repair direction.** Identify the layer that owns the behavior and explain why. Use a short sketch or suggested diff if useful. Look for existing facilities before introducing a special case. Describe relevant compatibility and performance boundaries, and identify unmeasured performance claims.
+7. **Validation.** Choose a few discriminating checks for the original failure, nearby normal behavior, and key boundaries. Suggest ablation or a controlled comparison only for a concrete complexity dispute. Keep implementation, repository-wide testing, and performance engineering within the user's requested scope.
 
-研究过程不必按下面的顺序进行，但最终回答按这个理解顺序组织。可以合并相邻部分，不必机械地使用固定标题。
+For a recommendation, give an observable sign of mastery. Examples include explaining a tradeoff, predicting a neighboring case, or designing an experiment that distinguishes two causes. Provide the requested explanation and advice without turning it into a compulsory quiz.
 
-1. **推荐结果。** 给出 issue 链接，一句话说明用户遇到什么问题。简短说明已有能力的证据、本次主要提升维度、具体新增挑战和预计所需支持，以及接手状态和核对日期。指定 issue 时直接介绍问题，不强行评价是否适合接手。
-2. **发生场景。** 说明谁在使用什么功能，执行哪个命令或操作，需要哪些配置和环境，最终受到什么影响。选一个贯穿全文的小例子。
-3. **正常流程与必要知识。** 先说明这个功能为什么存在、正常应该怎样运行。在用到某个概念时，再解释它的职责和作用。只补充理解本问题所需的知识，不展开成项目架构教程。
-4. **实际错误与原因。** 沿用同一个例子，指出正常流程在哪一步偏离，错误如何传递到用户看到的现象。然后再引入必要的函数、字段和代码位置。区分触发条件、根因和最终报错位置。
-5. **复现证据。** 给出关键环境、最小操作、预期结果和实际观察。明确是否亲自运行，以及对照实验说明了什么。环境失败或证据不足时，指出尚不能确定的结论。
-6. **修复方向。** 说明应在哪一层恢复什么行为，为什么放在这里。必要时提供短伪代码或建议 diff。检查已有工具和相似实现，避免为单个例子增加特例。说明关键兼容边界和性能影响，未测量的性能不要下定论。
-7. **怎样验证方案。** 给出少量有区分力的验证点：原始 bug 被修复、相邻正常行为保留、关键边界不回退。有具体复杂度争议时，再说明可做什么消融或对照实验。不自动扩大为完整实现、全仓测试或性能工程。
+## Recalibrate with experience
 
-推荐选题时，结合本次成长点给出一个可观察的掌握标准，例如能解释关键设计取舍、预测一个相邻场景，或独立设计能区分两种原因的实验。不要为此强制用户答题，也不要隐去原本应有的讲解和修复建议。
+As the user discusses or works on an issue, update your judgment from the actual sticking points, hints needed, and independent reasoning. Reading an explanation, participating in a PR, or getting it merged does not by itself show mastery. A method applied independently to a neighboring problem can support the next recommendation. Keep practicing areas that still require repeated prompts. Advance on evidence rather than the number of past recommendations.
 
-## 根据后续表现校准
+## Language and presentation
 
-用户继续讨论或处理 issue 时，根据实际卡点、所需提示和独立推理表现更新能力判断。读懂 agent 的解释、参与过 PR 或 PR 已合并，都不能单独证明掌握。相邻问题中能独立应用的方法可以作为下一次选题的基础；仍需反复提示的环节继续练习，不按推荐次数机械升级。没有后续表现证据时保留不确定性，不假定用户已经完成学习。
+- Write clear, direct Chinese for a programmer new to the module's terminology.
+- Explain what an object does before naming its fields. Explain the normal flow before the failure and the cause before the supporting code.
+- Keep the example, object names, and paths consistent. Each paragraph should make clear who reads, compares, changes, or stores what.
+- Explain terms in context. Omit unrelated background, long strings of identifiers, and repeated conclusions.
+- Use a short table for a comparison. Prefer a simple text sketch for a flow. Use Figma or a more complex diagram only when called for.
+- Put links near the claims they support. Deliver an explanation the user can read on its own without pausing after each step to ask whether to continue.
 
-## 语言与文字方式
-
-- 使用自然、直接、简洁的中文。假设用户懂编程，但不懂当前模块的专用名词。
-- 先讲对象负责什么，再讲对象叫什么、有哪些字段。
-- 先讲正常流程，再讲错误；先讲因果，再展示代码证据。
-- 同一个例子、对象名称和路径贯穿解释，不频繁换例子。
-- 每段推进一个问题，明确谁读取、比较、修改或保存了什么。
-- 不用术语替代解释，不连续堆砌函数名和字段名。
-- 不写与当前因果链无关的背景，也不重复总结同一结论。
-- 对比适合用短表格；流程需要图示时优先简洁文本线稿，不默认调用 Figma 或生成复杂图。
-- 链接放在支持的结论附近，避免把回答写成链接和日志清单。
-- 形成一份可以独立读懂的说明，不逐步停下来问用户“是否继续”“是否需要解释”。
-
-用户追问时，识别他正在确认哪个环节，沿用之前的例子回答。用户复述理解时，具体指出正确部分和需要纠正的部分；如果前面的说明遗漏了步骤，直接补上步骤。不从头重讲全文，也不借追问引入更多无关实现细节。
+For follow-up questions, identify the specific part the user is checking and reuse the original example. If the user restates the mechanism, identify what is correct and correct any errors. Supply an omitted step directly without restarting the whole explanation or introducing unrelated implementation details.
