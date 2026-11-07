@@ -1,41 +1,42 @@
 ---
 name: sol-max-subagents
-description: "Use when the user requests Sol Max subagents. The lead delegates to gpt-6.1-sol with max reasoning effort, coordinates the work, and checks the results. Default to three subagents unless the user specifies a count or the task calls for a different one."
+description: "Consider Sol Max when selecting workers for independent implementation or testing with a clear plan and acceptance criteria, or when the user requests Sol Max subagents. Choose whether and what to delegate, dispatch suitable work to gpt-6.1-sol at max, and verify the results."
 compatibility: "Requires a subagent runtime supporting gpt-6.1-sol, max reasoning effort, and the documented dispatch and coordination parameters."
 ---
 
 # Sol Max Subagents
 
-The lead keeps its current model, interprets the request, assigns work, integrates the results, and verifies them. Each subagent uses `gpt-6.1-sol` with `max` reasoning effort.
+The lead keeps its current model and owns task assignment, integration, and final verification. Workers selected for Sol use `gpt-6.1-sol` with `max` reasoning effort.
 
-## Count and assignments
+## Decide and assign
 
 Use the current request and any follow-ups to determine the goals, count, and limits. Loading this skill does not by itself start any agents or define their tasks.
 
-- Honor a specified count and division of work. If the user gives only a goal, divide it among the chosen number of agents.
-- Default to three when no count is specified. If another count clearly fits the task better, choose it and briefly explain why without pausing for permission.
+- Decide whether to delegate based on task boundaries, complexity, context handoff cost, and parallel benefit. A complete plan alone does not require subagents.
+- For independent implementation or testing with a clear plan and acceptance criteria, consider Sol Max first. Keep work with the lead or select another model when better suited; honor explicit user model choices.
+- Honor a specified count and division of work. Otherwise choose the number of workers to fit the independent tasks and runtime limits, including a single worker when sufficient.
 - If the task itself is missing and cannot be inferred from context, ask a short question about the task.
-- When a follow-up changes an existing assignment, send it to the responsible subagent. Add agents only when explicitly requested.
+- Send follow-ups to the agent responsible for the assignment. Add workers only when the remaining work warrants them, within the user's scope and team limits.
 
-## Create the subagents
+## Dispatch Sol workers
 
-Use the runtime's subagent tool, such as `collaboration.spawn_agent`, to delegate within the current chat. Pass the dispatch settings explicitly as shown below.
+For work assigned to Sol, use the runtime's subagent tool, such as `collaboration.spawn_agent`, within the current chat. Pass the dispatch settings explicitly as shown below.
 
 ```json
 {
-  "task_name": "inspect_api",
+  "task_name": "implement_api",
   "model": "gpt-6.1-sol",
   "reasoning_effort": "max",
   "fork_turns": "none",
-  "message": "Inspect the API. Include task-specific context, available files or resources, deliverables, and permitted actions."
+  "message": "Implement the approved API change in the assigned files. Follow the supplied plan and acceptance criteria, run the required checks, and report the changes and results."
 }
 ```
 
-Adapt the task name and message to the assignment. Use unique lowercase letters, digits, and underscores for `task_name`. When overriding the model, use `fork_turns: "none"` and include the necessary context in the message, or use limited history if the runtime supports it. A full-history fork does not support this model override.
+Adapt the task name and message to the assignment. Use unique lowercase letters, digits, and underscores for `task_name`. When overriding the model, use `fork_turns: "none"` and include the approved plan, relevant context, owned files, acceptance criteria, checks, and permitted actions in the message, or use limited history if the runtime supports it. A full-history fork does not support this model override.
 
 Give each task clear boundaries. In a shared working directory, assign file ownership and identify dependencies so concurrent edits do not overwrite one another. Each subagent completes its assigned task without creating additional subagents.
 
-Honor the runtime's concurrency limit. If slots can be released, dispatch in batches. Otherwise, explain the limit and let the user choose a feasible arrangement. If the tool, model, or `max` reasoning effort is unavailable, report the specific limitation rather than silently reducing the requested count or changing models or effort.
+Honor the runtime's concurrency limit. Reuse workers or dispatch in batches when necessary. Report any limit that prevents fulfilling an explicit request. If the requested tool, model, or reasoning effort is unavailable, explain the limitation and any proposed fallback rather than silently substituting.
 
 ## Coordinate and deliver
 

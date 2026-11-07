@@ -13,6 +13,11 @@
 - **Mode of change**: Default to targeted changes that follow local conventions. When explicitly asked to redesign, rewrite, or break compatibility, reason from first principles without treating minimal diff or backward compatibility as hidden constraints.
 - **Generalize corrections**: Do not overfit to the first example. When the user corrects a decision criterion, apply the principle across the entire relevant scope.
 
+## Delegation
+
+- **Delegation judgment**: Decide whether to delegate based on task boundaries, complexity, context handoff cost, and parallel benefit. A complete plan alone does not require subagents. Size the team to the work.
+- **Worker models**: When selecting workers for independent implementation or testing with a clear plan and acceptance criteria, consult `sol-max-subagents` and consider Sol Max first. Choose another model or keep work with the lead when better suited, and honor explicit user choices. The lead retains coordination, review, and final acceptance.
+
 ## Evidence and Review
 
 - **Ground claims in evidence**: Base repo-specific claims on inspected code, tests, config, and git history, citing exact locations when relevant.
