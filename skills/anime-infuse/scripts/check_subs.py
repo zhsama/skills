@@ -158,6 +158,30 @@ def extract(path, subtitle_index, target):
     return result.returncode == 0
 
 
+def extract_all(path, target_dir, as_json=False):
+    """Write every text subtitle track of a media file out as an .ass file."""
+    data = probe(path)
+    subtitles = [s for s in data["streams"] if s["codec_type"] == "subtitle"]
+    target_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+    for position, stream in enumerate(subtitles):
+        if stream["codec_name"] not in TEXT_CODECS:
+            continue
+        language = stream.get("tags", {}).get("language", "und")
+        target = target_dir / f"{path.stem}.s{position}.{language}.ass"
+        if extract(path, position, target):
+            written.append(str(target))
+    if as_json:
+        json.dump({"file": path.name, "extracted": written}, sys.stdout, indent=2)
+        sys.stdout.write("\n")
+    else:
+        for name in written:
+            print(name)
+        if not written:
+            print(f"{path.name}: no text subtitle track to extract")
+    return 0 if written else 1
+
+
 def describe(styles, verdict, jp_lines, zh_lines, detail, as_json):
     if as_json:
         return {"styles": styles, "bilingual": verdict,
@@ -240,11 +264,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", help="media file or subtitle file")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument("--extract", type=Path, metavar="DIR",
+                        help="write every text subtitle track of a media file into DIR")
     args = parser.parse_args(argv)
 
     path = Path(args.path).expanduser()
     if not path.is_file():
         parser.error(f"no such file: {path}")
+    if args.extract:
+        return extract_all(path, args.extract.expanduser(), args.json)
     if path.suffix.lower() in TEXT_SUFFIXES:
         return report_text(path, args.json)
     return report_media(path, args.json)

@@ -75,6 +75,29 @@ aria2c release.torrent --dir="$OUT" --select-file=32 --seed-time=0 ...
 
 A few hundred kilobytes usually completes in a minute or two even from a seeder that cannot sustain a video transfer. Apply the same approach to `Fonts.zip`, which is normally tens of megabytes and may need several attempts.
 
+### Never wait on a dead swarm
+
+A release that is the only one with the right subtitles is often the one nobody seeds. `SD:0` on every connection means no peer holds the data; waiting is not a plan, and a partially downloaded video is worth nothing because nothing in it can be played.
+
+The fix is to stop treating a "release" as the unit. Split it into **video** and **subtitles** and get each from the swarm that still has it:
+
+- Video: the most seeded release of any language, usually a Japanese-audio Blu-ray encode with English subtitles.
+- Subtitles: whatever torrent, archive or pack still holds them, pulled with `--select-file` so the rest of the pack never transfers.
+
+Subtitle timing comes from the Blu-ray master, so a Chinese script authored against one 1080p Blu-ray encode fits another one. Verify with `merge_bilingual.py`, which reports the offset it detected: a stable offset with a small spread means constant shift only, while a large spread means the scripts were made for different cuts. Extract the script from a finished video with `check_subs.py --extract` when the only copy lives in an embedded track.
+
+Before abandoning partial data, check whether another torrent carries the same files — same release, different tracker or re-upload. Point that torrent at the existing directory and let aria2 hash-check it: files that are already complete are accepted and only the gaps download. See the stitching section below.
+
+### Stitching releases
+
+When several partial sources together cover a series, keep every file that is already complete and fetch only the holes:
+
+```sh
+python3 scripts/plan_select.py release.torrent --dir="$OUT"
+```
+
+It reports `complete` / `partial` / `missing` per file and prints the exact `--select-file=` argument for what is left, with consecutive indices collapsed into ranges. Run it against a second torrent of the same release to see whether the data already on disk can simply be adopted instead of re-downloaded.
+
 ## Stage 4 — Mux and file into Infuse
 
 Infuse reads a local folder tree; on macOS its configured source is `~/Movies/Infuse`. Follow the naming convention Plex, Jellyfin, and Infuse share:
@@ -115,4 +138,6 @@ Clone-copied files share blocks with their source: deleting one of the two copie
 | --- | --- |
 | `scripts/torrent_files.py <torrent>` | List files with the index needed by `--select-file` |
 | `scripts/check_subs.py <file>` | Report subtitle tracks, styles, Chinese/Japanese pairing, timing |
+| `scripts/check_subs.py <file> --extract DIR` | Write a media file's text subtitle tracks out as `.ass` |
 | `scripts/merge_bilingual.py --cn --jp --out` | Merge Chinese and Japanese scripts into one bilingual ASS |
+| `scripts/plan_select.py <torrent> --dir DIR` | Show which files are already on disk and the `--select-file` for the rest |

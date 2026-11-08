@@ -1,4 +1,5 @@
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECK = ROOT / "skills/anime-infuse/scripts/check_subs.py"
 TORRENT = ROOT / "skills/anime-infuse/scripts/torrent_files.py"
 MERGE = ROOT / "skills/anime-infuse/scripts/merge_bilingual.py"
+PLAN = ROOT / "skills/anime-infuse/scripts/plan_select.py"
 
 ASS_BILINGUAL = """[Script Info]
 ScriptType: v4.00+
@@ -190,6 +192,74 @@ class BilingualMerge(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["jp_events"], 2)
+
+
+class PartialReuse(unittest.TestCase):
+    def test_reports_complete_partial_and_missing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            torrent = make_torrent(directory)
+            release = Path(directory) / "Example Show" / "Season 1"
+            release.mkdir(parents=True)
+            (release / "Example - S01E01.mkv").write_bytes(b"x" * 1024)
+            (release / "Example - S01E02.mkv").write_bytes(b"x" * 700)
+            result = subprocess.run([sys.executable, str(PLAN), str(torrent),
+                                     "--dir", directory], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertRegex(result.stdout, r"complete\s+1 files")
+            self.assertRegex(result.stdout, r"partial\s+1 files")
+            self.assertRegex(result.stdout, r"missing\s+1 files")
+            self.assertIn("--select-file=2-3", result.stdout)
+
+    def test_collapses_consecutive_indices(self):
+        with tempfile.TemporaryDirectory() as directory:
+            torrent = make_torrent(directory)
+            Path(directory, "Example Show", "Season 1").mkdir(parents=True)
+            (Path(directory) / "Example Show" / "Sub.zip").write_bytes(b"x" * 512)
+            result = subprocess.run([sys.executable, str(PLAN), str(torrent),
+                                     "--dir", directory, "--json"],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["select_arg"], "1-2")
+
+    def test_everything_present_reports_nothing_to_do(self):
+        with tempfile.TemporaryDirectory() as directory:
+            torrent = make_torrent(directory)
+            release = Path(directory) / "Example Show"
+            (release / "Season 1").mkdir(parents=True)
+            (release / "Season 1" / "Example - S01E01.mkv").write_bytes(b"x" * 1024)
+            (release / "Season 1" / "Example - S01E02.mkv").write_bytes(b"x" * 2048)
+            (release / "Sub.zip").write_bytes(b"x" * 512)
+            result = subprocess.run([sys.executable, str(PLAN), str(torrent),
+                                     "--dir", directory], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("nothing to download", result.stdout)
+
+
+@unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),
+                     "needs ffmpeg and ffprobe")
+class TrackExtraction(unittest.TestCase):
+    def make_media(self, directory):
+        subtitle = Path(directory) / "in.ass"
+        subtitle.write_text(ASS_BILINGUAL)
+        media = Path(directory) / "episode.mkv"
+        subprocess.run(["ffmpeg", "-v", "error", "-y",
+                        "-f", "lavfi", "-i", "color=c=black:s=64x64:d=1",
+                        "-i", str(subtitle), "-map", "0:v", "-map", "1:0",
+                        "-c:v", "libx264", "-preset", "ultrafast",
+                        "-c:s", "ass", "-metadata:s:s:0", "language=chi",
+                        str(media)], check=True, capture_output=True)
+        return media
+
+    def test_extracts_embedded_text_track(self):
+        with tempfile.TemporaryDirectory() as directory:
+            media = self.make_media(directory)
+            out = Path(directory) / "subs"
+            result = subprocess.run([sys.executable, str(CHECK), str(media),
+                                     "--extract", str(out)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            written = list(out.glob("*.ass"))
+            self.assertEqual(len(written), 1)
+            self.assertIn("这是测试", written[0].read_text())
 
 
 if __name__ == "__main__":
