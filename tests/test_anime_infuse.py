@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CHECK = ROOT / "skills/anime-infuse/scripts/check_subs.py"
 TORRENT = ROOT / "skills/anime-infuse/scripts/torrent_files.py"
+MERGE = ROOT / "skills/anime-infuse/scripts/merge_bilingual.py"
 
 ASS_BILINGUAL = """[Script Info]
 ScriptType: v4.00+
@@ -118,6 +119,77 @@ class TorrentListing(unittest.TestCase):
             self.assertEqual(data["name"], "Example Show")
             self.assertEqual([item["index"] for item in data["files"]], [1, 2, 3])
             self.assertEqual(data["files"][2]["path"], "Sub.zip")
+
+
+CN_ASS = """[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: 简体,方正准圆_GBK,60,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,15,134
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:02.00,0:00:04.50,简体,,0,0,0,,第一句
+Dialogue: 0,0:00:06.00,0:00:08.00,简体,,0,0,0,,第二句
+"""
+
+JP_SRT = """1
+00:00:02,200 --> 00:00:04,700
+最初の台詞
+
+2
+00:00:06,200 --> 00:00:08,200
+二番目の台詞
+"""
+
+
+class BilingualMerge(unittest.TestCase):
+    def merge(self, directory, *extra):
+        cn = Path(directory) / "cn.ass"
+        jp = Path(directory) / "jp.srt"
+        out = Path(directory) / "out.ass"
+        cn.write_text(CN_ASS)
+        jp.write_text(JP_SRT)
+        result = subprocess.run([sys.executable, str(MERGE), "--cn", str(cn),
+                                 "--jp", str(jp), "--out", str(out), *extra],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return out, result.stdout
+
+    def test_detects_offset_and_keeps_chinese_style(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out, output = self.merge(directory, "--json")
+            stats = json.loads(output)
+            self.assertAlmostEqual(stats["offset"], -0.2, places=2)
+            self.assertEqual(stats["cn_events"], 2)
+            self.assertEqual(stats["jp_events"], 2)
+            merged = out.read_text()
+            self.assertIn("Style: 简体,方正准圆_GBK", merged)
+            self.assertIn("Dialogue: 0,0:00:02.00,0:00:04.50,简体", merged)
+            self.assertIn("日文,,0,0,0,,最初の台詞", merged)
+            self.assertEqual(merged.count("Dialogue:"), 4)
+
+    def test_output_reads_as_bilingual(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out, _ = self.merge(directory)
+            result = subprocess.run([sys.executable, str(CHECK), str(out), "--json"],
+                                    capture_output=True, text=True)
+            self.assertTrue(json.loads(result.stdout)["bilingual"])
+
+    def test_dry_run_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cn = Path(directory) / "cn.ass"
+            jp = Path(directory) / "jp.srt"
+            cn.write_text(CN_ASS)
+            jp.write_text(JP_SRT)
+            result = subprocess.run([sys.executable, str(MERGE), "--cn", str(cn),
+                                     "--jp", str(jp), "--dry-run", "--json"],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["jp_events"], 2)
 
 
 if __name__ == "__main__":

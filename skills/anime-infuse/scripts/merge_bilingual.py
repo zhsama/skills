@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""Merge a Chinese subtitle and a Japanese subtitle into one bilingual ASS."""
+
+import argparse
+import json
+import re
+import statistics
+import sys
+from pathlib import Path
+
+STAMP = re.compile(r"(\d+):(\d{2}):(\d{2})[.,](\d{1,3})")
+ASS_TIME = re.compile(r"(\d+):(\d{2}):(\d{2})\.(\d{2})")
+OVERRIDE = re.compile(r"\{[^}]*\}")
+SRT_INDEX = re.compile(r"^\d+$")
+
+CN_FALLBACK_FONT = "PingFang SC"
+DEFAULT_JP_STYLE = """Style: 日文,{font},{size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,{margin},134
+"""
+
+
+def stamp_seconds(value):
+    match = STAMP.search(value)
+    if not match:
+        return None
+    hours, minutes, secs, frac = match.groups()
+    return int(hours) * 3600 + int(minutes) * 60 + int(secs) + int(frac.ljust(3, "0")) / 1000
+
+
+def ass_time(seconds):
+    seconds = max(0.0, seconds)
+    hours, rest = divmod(seconds, 3600)
+    minutes, rest = divmod(rest, 60)
+    return f"{int(hours)}:{int(minutes):02d}:{rest:05.2f}"
+
+
+def decode(raw):
+    for encoding in ("utf-8-sig", "utf-8", "gb18030", "cp932"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", "replace")
+
+
+def parse_srt(text):
+    events = []
+    block = []
+    for line in text.splitlines() + [""]:
+        if line.strip():
+            block.append(line)
+            continue
+        if block:
+            index = 0
+            if SRT_INDEX.match(block[0].strip()) and len(block) > 1:
+                index = 1
+            if index < len(block) and "-->" in block[index]:
+                left, right = block[index].split("-->", 1)
+                start = stamp_seconds(left)
+                end = stamp_seconds(right)
+                body = "\\N".join(part.strip() for part in block[index + 1:] if part.strip())
+                if start is not None and end is not None and body:
+                    events.append((start, end, OVERRIDE.sub("", body).strip()))
+            block = []
+    return events
+
+
+def parse_ass(text):
+    """Keep each original Dialogue line so Chinese styling and positioning survive."""
+    events = []
+    in_events = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_events = stripped.lower() == "[events]"
+            continue
+        if not in_events or not stripped.startswith("Dialogue:"):
+            continue
+        fields = stripped[len("Dialogue:"):].split(",", 9)
+        if len(fields) < 10:
+            continue
+        start = stamp_seconds(fields[1])
+        end = stamp_seconds(fields[2])
+        if start is None or end is None:
+            continue
+        events.append({"start": start, "end": end, "raw": stripped, "body": fields[9].strip()})
+    return events
+
+
+def parse_srt_events(text):
+    return [{"start": start, "end": end, "body": body} for start, end, body in parse_srt(text)]
+
+
+def parse(path):
+    text = decode(path.read_bytes())
+    if path.suffix.lower() in (".ass", ".ssa"):
+        return text, parse_ass(text), True
+    return text, parse_srt_events(text), False
+
+
+def style_block(text):
+    """Return header lines plus the styles section, without the events section."""
+    header, styles = [], []
+    section = None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("["):
+            section = stripped.lower()
+            if section == "[events]":
+                break
+            (styles if "styles" in section else header).append(line)
+            continue
+        if section is None:
+            header.append(line)
+        elif "styles" in section:
+            styles.append(line)
+    return header, styles
+
+
+def estimate_offset(cn_events, jp_events, window=2.0, tolerance=0.6):
+    """Median gap between each Japanese line and the nearest Chinese line."""
+    if not cn_events or not jp_events:
+        return 0.0, 0.0, 0
+    starts = sorted(event["start"] for event in cn_events)
+    gaps = []
+    for start in jp_events:
+        nearest = min(starts, key=lambda value: abs(value - start))
+        if abs(nearest - start) <= window:
+            gaps.append(nearest - start)
+    if not gaps:
+        return 0.0, 0.0, 0
+    offset = statistics.median(gaps)
+    spread = statistics.median([abs(gap - offset) for gap in gaps])
+    return offset, spread, len(gaps)
+
+
+def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=None, dry=False):
+    cn_text, cn_events, cn_is_ass = parse(cn_path)
+    _, jp_raw, jp_is_ass = parse(jp_path)
+    jp_events = [event["start"] for event in jp_raw]
+    offset, spread, matched = estimate_offset(cn_events, jp_events)
+    applied = force_offset if force_offset is not None else (offset if spread <= 0.6 else 0.0)
+
+    header, styles = style_block(cn_text)
+    cleaned = [line for line in styles if not line.strip().startswith("Style: 日文")]
+    if not any(line.strip().lower().startswith("format:") for line in cleaned):
+        cleaned.append("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+                       "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
+                       "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, "
+                       "MarginR, MarginV, Encoding")
+    if not cn_is_ass:
+        cleaned.append(f"Style: 中文,{CN_FALLBACK_FONT},{jp_size + 20},&H00FFFFFF,&H000000FF,"
+                       f"&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,15,134")
+    cleaned.append(DEFAULT_JP_STYLE.format(font=jp_font, size=jp_size, margin=jp_margin).rstrip())
+
+    dialogue = []
+    for event in cn_events:
+        if "raw" in event:
+            dialogue.append((event["start"], 0, event["raw"]))
+        else:
+            start, end = event["start"], event["end"]
+            body = event["body"].replace("\n", "\\N")
+            dialogue.append((start, 0, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},中文,,0,0,0,,{body}"))
+    for event in jp_raw:
+        start, end = event["start"] + applied, event["end"] + applied
+        if start < 0:
+            continue
+        body = event["body"].replace("\n", "\\N")
+        dialogue.append((start, 1, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},日文,,0,0,0,,{body}"))
+    dialogue.sort(key=lambda item: (item[0], item[1]))
+
+    if dry:
+        return {"cn_events": len(cn_events), "jp_events": len(jp_events),
+                "offset": round(applied, 3), "spread": round(spread, 3), "matched": matched}
+
+    lines = list(header)
+    lines.append("[V4+ Styles]")
+    lines.extend(cleaned)
+    lines.append("[Events]")
+    lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
+    lines.extend(item[2] for item in dialogue)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return {"cn_events": len(cn_events), "jp_events": len(jp_events),
+            "offset": round(applied, 3), "spread": round(spread, 3), "matched": matched}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cn", required=True, type=Path, help="Chinese ASS/SSA/SRT")
+    parser.add_argument("--jp", required=True, type=Path, help="Japanese ASS/SSA/SRT")
+    parser.add_argument("--out", type=Path, help="merged ASS to write")
+    parser.add_argument("--jp-font", default="EPSON 太明朝体Ｂ")
+    parser.add_argument("--jp-size", type=int, default=40)
+    parser.add_argument("--jp-margin", type=int, default=55,
+                        help="vertical margin of the Japanese line; keep above the Chinese one")
+    parser.add_argument("--offset", type=float, default=None,
+                        help="force a shift in seconds instead of using detection")
+    parser.add_argument("--dry-run", action="store_true", help="report without writing")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+
+    if not args.out and not args.dry_run:
+        parser.error("--out is required unless --dry-run is used")
+
+    stats = build(args.cn, args.jp, args.out, args.jp_font, args.jp_size,
+                  args.jp_margin, args.offset, args.dry_run)
+    if args.json:
+        json.dump(stats, sys.stdout, indent=2)
+        sys.stdout.write("\n")
+    else:
+        print(f"cn={stats['cn_events']} jp={stats['jp_events']} "
+              f"offset={stats['offset']:+.2f}s spread={stats['spread']:.2f}s "
+              f"matched={stats['matched']}")
+        if stats["spread"] > 0.6:
+            print("warning: timing unreliable, pass --offset explicitly", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

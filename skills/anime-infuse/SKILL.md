@@ -36,6 +36,17 @@ Work through these in order. Stop at the first that yields a track containing bo
 
 Verify before trusting any file: `python3 scripts/check_subs.py <file.ass>` and confirm the Chinese and Japanese line counts match. Equal counts across the whole episode indicate a true bilingual script with matching timings.
 
+### When no bilingual release exists
+
+Popular classics often ship as Chinese-only `ASSx2` (one `.sc` and one `.tc` track) while the Japanese script sits on kitsunekko. Build the bilingual track yourself instead of settling for one language.
+
+1. Prefer a release that ships **external** subtitles (`.sc.ass` / `.tc.ass` beside the video, typical of VCB-Studio, Airota&Nekomoe, DBD-Raws). Download only the subtitle files with `--select-file` from `torrent_files.py` — even a nearly dead swarm delivers a few hundred KB.
+2. Take the video from a well-seeded English-subbed release on Nyaa. Both are Blu-ray encodes, so timings agree; verify per episode rather than assuming.
+3. `python3 scripts/merge_bilingual.py --cn <sc.ass> --jp <jp.srt> --out <merged.ass>` keeps every Chinese style and dialogue line untouched, appends the Japanese lines as a new `日文` style placed above them, and reports the detected offset and its spread. Run it with `--dry-run --json` first: `spread` above 0.6s means the two scripts are not on the same timeline — fix the source rather than forcing `--offset`.
+4. Check the result with `check_subs.py` (it should now say `BILINGUAL`) and mux it as the only subtitle track.
+
+A `Webrip` Japanese script against a Blu-ray video is usually a different timeline; prefer the `BD` copy when kitsunekko offers both.
+
 ## Stage 3 — Download in parallel, multi-threaded
 
 Run one aria2 job per release, concurrently, so a stalled source does not block the others:
@@ -104,3 +115,4 @@ Clone-copied files share blocks with their source: deleting one of the two copie
 | --- | --- |
 | `scripts/torrent_files.py <torrent>` | List files with the index needed by `--select-file` |
 | `scripts/check_subs.py <file>` | Report subtitle tracks, styles, Chinese/Japanese pairing, timing |
+| `scripts/merge_bilingual.py --cn --jp --out` | Merge Chinese and Japanese scripts into one bilingual ASS |
