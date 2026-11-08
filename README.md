@@ -14,6 +14,7 @@ My agent skills and coding preferences.
 | [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | Find reclaimable development files on macOS. |
 | [codex-downgrade](skills/codex-downgrade/SKILL.md) | Audit which model served a Codex session. |
 | [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | Delegate work to Sol Max subagents. |
+| [anime-infuse](skills/anime-infuse/SKILL.md) | Download anime with bilingual Chinese/Japanese subtitles into an Infuse library. |
 
 ## Install
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anime Infuse"
+  short_description: "Download anime with bilingual Chinese/Japanese subtitles into an Infuse library"
+  default_prompt: "Use $anime-infuse to find a well-seeded release, get bilingual Chinese-Japanese subtitles, download it multi-threaded, and file it into my Infuse library."
