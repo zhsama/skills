@@ -104,6 +104,18 @@ The fix is to stop treating a "release" as the unit. Split it into **video** and
 - Video: the most seeded release of any language, usually a Japanese-audio Blu-ray encode with English subtitles.
 - Subtitles: whatever torrent, archive or pack still holds them, pulled with `--select-file` so the rest of the pack never transfers.
 
+### The subtitle archive is often the whole release
+
+Chinese-titled torrents frequently ship the script as a `RAR`/`ZIP` inside the file list — `[异域-11番小队]` publishes one per batch next to its videos. That archive is worth a few hundred KB and is usually the *last* thing to lose its seeds, so an SD:0 release may still hand you complete subtitles for all episodes. Look for it before concluding the release is dead:
+
+```sh
+python3 scripts/torrent_files.py release.torrent --only subtitle
+aria2c release.torrent --select-file=11 --dir=/tmp/sub
+unar -q -o /tmp/sub/out /tmp/sub/**/*.rar
+```
+
+Then pair the video from a seeded release with those scripts. Measure the pairing rather than assuming it: extract the seeded video's own subtitle track with `check_subs.py --extract`, and estimate its offset to the Japanese script the same way. When the Chinese↔Japanese offset matches that baseline within a second or so, the Chinese script was authored against this exact cut and only needs the baseline shift applied.
+
 Subtitle timing comes from the Blu-ray master, so a Chinese script authored against one 1080p Blu-ray encode fits another one. Verify with `merge_bilingual.py`, which reports the offset it detected: a stable offset with a small spread means constant shift only, while a large spread means the scripts were made for different cuts. Extract the script from a finished video with `check_subs.py --extract` when the only copy lives in an embedded track.
 
 Before abandoning partial data, check whether another torrent carries the same files — same release, different tracker or re-upload. Point that torrent at the existing directory and let aria2 hash-check it: files that are already complete are accepted and only the gaps download. See the stitching section below.
