@@ -34,6 +34,10 @@ def ass_time(seconds):
 
 
 def decode(raw):
+    # Chinese fansub releases ship UTF-16LE with a BOM as often as UTF-8;
+    # decoding those bytes as gb18030 silently yields mojibake.
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return raw.decode("utf-16")
     for encoding in ("utf-8-sig", "utf-8", "gb18030", "cp932"):
         try:
             return raw.decode(encoding)
@@ -116,27 +120,57 @@ def style_block(text):
     return header, styles
 
 
-def estimate_offset(cn_events, jp_events, window=2.0, tolerance=0.6):
-    """Median gap between each Japanese line and the nearest Chinese line."""
-    if not cn_events or not jp_events:
+TYPESET = re.compile(r"\\pos|\\move|\\clip|\\fad|\\t\(|\\k[fo]?\\|\\[a-zA-Z]*c&H")
+
+
+def plain(event):
+    """True for an ordinary spoken line, false for signs, karaoke and effects.
+
+    Typesetting lines are placed by absolute coordinates and split differently in
+    every script, so including them in an offset estimate only adds noise.
+    """
+    if TYPESET.search(event["body"]):
+        return False
+    return 0.2 <= event["end"] - event["start"] <= 15
+
+
+def estimate_offset(cn_events, jp_events, window=15.0, tolerance=0.5):
+    """Find the dominant constant shift between the two scripts.
+
+    Matching each Japanese line to its nearest Chinese line fails as soon as the
+    two scripts split sentences differently: the nearest line is then usually a
+    short typeset or karaoke event, and the median collapses to zero. Voting on
+    every plausible pair instead surfaces the shift that most pairs agree on.
+    """
+    cn_starts = [event["start"] for event in cn_events if plain(event)]
+    jp_starts = [event["start"] for event in jp_events if plain(event)]
+    if not cn_starts or not jp_starts:
         return 0.0, 0.0, 0
-    starts = sorted(event["start"] for event in cn_events)
-    gaps = []
-    for start in jp_events:
-        nearest = min(starts, key=lambda value: abs(value - start))
-        if abs(nearest - start) <= window:
-            gaps.append(nearest - start)
-    if not gaps:
+
+    diffs = []
+    for jp_start in jp_starts:
+        for cn_start in cn_starts:
+            diff = cn_start - jp_start
+            if abs(diff) <= window:
+                diffs.append(diff)
+    if not diffs:
         return 0.0, 0.0, 0
-    offset = statistics.median(gaps)
-    spread = statistics.median([abs(gap - offset) for gap in gaps])
-    return offset, spread, len(gaps)
+
+    votes = {}
+    for diff in diffs:
+        key = round(diff * 10)
+        votes[key] = votes.get(key, 0) + 1
+    peak = max(votes, key=lambda key: votes[key]) / 10
+
+    cluster = [diff for diff in diffs if abs(diff - peak) <= tolerance]
+    offset = statistics.median(cluster)
+    spread = statistics.median([abs(diff - offset) for diff in cluster])
+    return offset, spread, len(cluster)
 
 
 def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=None, dry=False):
     cn_text, cn_events, cn_is_ass = parse(cn_path)
-    _, jp_raw, jp_is_ass = parse(jp_path)
-    jp_events = [event["start"] for event in jp_raw]
+    _, jp_events, jp_is_ass = parse(jp_path)
     offset, spread, matched = estimate_offset(cn_events, jp_events)
     applied = force_offset if force_offset is not None else (offset if spread <= 0.6 else 0.0)
 
@@ -160,7 +194,7 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
             start, end = event["start"], event["end"]
             body = event["body"].replace("\n", "\\N")
             dialogue.append((start, 0, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},中文,,0,0,0,,{body}"))
-    for event in jp_raw:
+    for event in jp_events:
         start, end = event["start"] + applied, event["end"] + applied
         if start < 0:
             continue

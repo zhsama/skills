@@ -26,6 +26,10 @@ def stamp_seconds(value):
 
 
 def decode(raw):
+    # Chinese fansub releases ship UTF-16LE with a BOM as often as UTF-8;
+    # decoding those bytes as gb18030 silently yields mojibake.
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return raw.decode("utf-16")
     for encoding in ("utf-8-sig", "utf-8", "gb18030", "cp932"):
         try:
             return raw.decode(encoding)

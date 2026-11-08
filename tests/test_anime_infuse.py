@@ -193,6 +193,50 @@ class BilingualMerge(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["jp_events"], 2)
 
+    def test_reads_utf16_chinese_script(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cn = Path(directory) / "cn.ass"
+            jp = Path(directory) / "jp.srt"
+            cn.write_bytes(CN_ASS.encode("utf-16"))
+            jp.write_text(JP_SRT)
+            result = subprocess.run([sys.executable, str(MERGE), "--cn", str(cn),
+                                     "--jp", str(jp), "--dry-run", "--json"],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stats = json.loads(result.stdout)
+            self.assertEqual(stats["cn_events"], 2)
+            self.assertAlmostEqual(stats["offset"], -0.2, places=2)
+
+    def test_offset_survives_typesetting_and_split_lines(self):
+        """Dense signs and a script that splits lines differently must not hide the shift."""
+        chinese = CN_ASS.replace(
+            "Dialogue: 0,0:00:02.00,0:00:04.50,简体,,0,0,0,,第一句\n"
+            "Dialogue: 0,0:00:06.00,0:00:08.00,简体,,0,0,0,,第二句\n",
+            "".join(
+                f"Dialogue: 0,0:00:{10 + 2 * step:02d}.00,0:00:{12 + 2 * step:02d}.00,"
+                f"简体,,0,0,0,,台词{step}\n"
+                for step in range(10)
+            )
+            + "Dialogue: 0,0:00:40.00,0:00:42.00,简体,,0,0,0,,{\\pos(50,50)\\fad(100,100)}招牌\n",
+        )
+        japanese = "".join(
+            f"{step + 1}\n00:00:{17 + 2 * step:02d},500 --> 00:00:{19 + 2 * step:02d},000\n台詞{step}\n\n"
+            for step in range(5)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            cn = Path(directory) / "cn.ass"
+            jp = Path(directory) / "jp.srt"
+            cn.write_text(chinese)
+            jp.write_text(japanese)
+            result = subprocess.run([sys.executable, str(MERGE), "--cn", str(cn),
+                                     "--jp", str(jp), "--dry-run", "--json"],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            stats = json.loads(result.stdout)
+            # 中文台词在 10,12,14…秒；日文台词在 17.5,19.5,21.5…秒，即晚 7.5s
+            self.assertAlmostEqual(stats["offset"], -7.5, delta=0.6)
+            self.assertLess(stats["spread"], 0.2)
+
 
 class PartialReuse(unittest.TestCase):
     def test_reports_complete_partial_and_missing(self):

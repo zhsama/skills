@@ -42,10 +42,30 @@ Popular classics often ship as Chinese-only `ASSx2` (one `.sc` and one `.tc` tra
 
 1. Prefer a release that ships **external** subtitles (`.sc.ass` / `.tc.ass` beside the video, typical of VCB-Studio, Airota&Nekomoe, DBD-Raws). Download only the subtitle files with `--select-file` from `torrent_files.py` — even a nearly dead swarm delivers a few hundred KB.
 2. Take the video from a well-seeded English-subbed release on Nyaa. Both are Blu-ray encodes, so timings agree; verify per episode rather than assuming.
-3. `python3 scripts/merge_bilingual.py --cn <sc.ass> --jp <jp.srt> --out <merged.ass>` keeps every Chinese style and dialogue line untouched, appends the Japanese lines as a new `日文` style placed above them, and reports the detected offset and its spread. Run it with `--dry-run --json` first: `spread` above 0.6s means the two scripts are not on the same timeline — fix the source rather than forcing `--offset`.
+3. `python3 scripts/merge_bilingual.py --cn <sc.ass> --jp <jp.srt> --out <merged.ass>` keeps every Chinese style and dialogue line untouched, appends the Japanese lines as a new `日文` style placed above them, and reports the detected offset and its spread. Run it with `--dry-run --json` first; the estimate votes on every plausible line pair and ignores typesetting and karaoke lines, so a low `spread` below 0.2s against a handful of votes means the two scripts genuinely share a timeline. `spread` above 0.6s, or an offset that changes from episode to episode, means they do not — fix the source rather than forcing `--offset`.
 4. Check the result with `check_subs.py` (it should now say `BILINGUAL`) and mux it as the only subtitle track.
 
-A `Webrip` Japanese script against a Blu-ray video is usually a different timeline; prefer the `BD` copy when kitsunekko offers both.
+### Verify the timeline against the video, not against the other script
+
+A subtitle file can be complete, correctly encoded and still unusable: sets are re-timed per release, and kitsunekko often holds several for one show (`Cowboy_Bebop_(01-26)` and `Cowboy_Bebop_(01-26)_(Webrip)`). The older rip set is sometimes authored for an edit with the opening placed first, so its drift grows past a minute mid-episode — no single `--offset` repairs that.
+
+The video's own subtitle track is the only ground truth:
+
+```sh
+python3 scripts/check_subs.py episode.mkv --extract /tmp/embed
+python3 scripts/merge_bilingual.py --cn /tmp/embed/eng.ass --jp jp.srt --dry-run --json
+```
+
+The second command reports the offset between the embedded script and the Japanese one. Trust it over an estimate made from the Chinese script:
+
+- A good set gives the **same** offset (±1s) for every episode, with `spread` under 0.2s. Apply it per episode (`--offset` is only needed when `spread` is high).
+- A set timed to another edit gives **different** offsets per episode, or offsets in the tens of seconds. Throw it away and look for the other variant.
+
+Cost of the check is one episode per release — the torrent's own subtitle track comes out of the file you already downloaded.
+
+Chinese scripts are usually authored against the release you took the video from, so check them the same way once: an embedded English track and the Chinese script should land within half a second of each other.
+
+Sanity-check the text too: a Chinese file whose `[Script Info]` says `UTF-16` and whose line count is zero in `merge_bilingual.py` decoded as gb18030 mojibake. UTF-16 BOMs are handled now, but a zero event count on a non-empty file means the decode went wrong.
 
 ## Stage 3 — Download in parallel, multi-threaded
 
