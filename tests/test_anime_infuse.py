@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -170,9 +171,38 @@ class BilingualMerge(unittest.TestCase):
             self.assertEqual(stats["jp_events"], 2)
             merged = out.read_text()
             self.assertIn("Style: 简体,方正准圆_GBK", merged)
+            self.assertIn("PlayResX: 1920", merged)
+            self.assertIn("PlayResY: 1080", merged)
+            self.assertEqual(merged.count("[V4+ Styles]"), 1)
             self.assertIn("Dialogue: 0,0:00:02.00,0:00:04.50,简体", merged)
             self.assertIn("日文,,0,0,0,,最初の台詞", merged)
             self.assertEqual(merged.count("Dialogue:"), 4)
+            # Chinese is 60px at margin 15; Japanese must be smaller and clear it.
+            jp = next(line for line in merged.splitlines() if line.startswith("Style: 日文"))
+            fields = jp.split(",")
+            self.assertLess(int(fields[2]), 60)
+            self.assertGreaterEqual(int(fields[-2]), 15 + 60)
+
+    def test_repair_puts_playres_back(self):
+        broken = """[Script Info]
+[V4+ Styles]
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,FZ,65,&H00FFFFFF,&H00000000,&H00000000,&H32000000,-1,0,0,0,100,100,1,0,1,2,0,2,30,30,30,1
+Style: 日文,EPSON,42,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,58,134
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:03:12.40,0:03:14.00,*Default,NTP,0000,0000,0000,,饭做好了
+"""
+        spec = importlib.util.spec_from_file_location("merge_bilingual", MERGE)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        fixed = module.repair(broken, 1920, 1080)
+        self.assertIn("PlayResY: 1080", fixed)
+        self.assertEqual(fixed.count("[V4+ Styles]"), 1)
+        self.assertIn("饭做好了", fixed)
+        jp = next(line for line in fixed.splitlines() if line.startswith("Style: 日文"))
+        self.assertGreaterEqual(int(jp.split(",")[-2]), 30 + 65)
 
     def test_output_reads_as_bilingual(self):
         with tempfile.TemporaryDirectory() as directory:

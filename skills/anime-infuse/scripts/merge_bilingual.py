@@ -102,22 +102,126 @@ def parse(path):
 
 
 def style_block(text):
-    """Return header lines plus the styles section, without the events section."""
+    """Return header lines plus the styles section, without the events section.
+
+    Script Info has to travel with the styles. PlayResX/PlayResY live there, and
+    without them libass assumes a 384x288 canvas, which blows a 1080p font up
+    until it covers the picture.
+    """
     header, styles = [], []
     section = None
     for line in text.splitlines():
         stripped = line.strip()
-        if stripped.startswith("["):
+        if stripped.startswith("[") and stripped.endswith("]"):
             section = stripped.lower()
             if section == "[events]":
                 break
             (styles if "styles" in section else header).append(line)
             continue
-        if section is None:
-            header.append(line)
-        elif "styles" in section:
+        if section is not None and "styles" in section:
             styles.append(line)
+        else:
+            header.append(line)
     return header, styles
+
+
+def split_style(line):
+    parts = line.split(":", 1)[1].split(",")
+    parts[0] = parts[0].strip()
+    return parts
+
+
+def style_number(parts, index, default):
+    if index >= len(parts):
+        return default
+    try:
+        return float(parts[index])
+    except ValueError:
+        return default
+
+
+def anchor_style(style_lines, events):
+    """The Chinese dialogue style the Japanese line has to clear.
+
+    Fansubs often mark the spoken style with a leading asterisk in the dialogue
+    (`*Default`) while the style itself is named `Default`. Count both.
+    """
+    counts = {}
+    for event in events:
+        raw = event.get("raw", "")
+        fields = raw.split(",", 9) if raw else []
+        name = fields[3].lstrip("*").strip() if len(fields) > 3 else "中文"
+        counts[name] = counts.get(name, 0) + 1
+    parsed = []
+    for line in style_lines:
+        if not line.strip().startswith("Style:"):
+            continue
+        parts = split_style(line)
+        if parts[0] == "日文":
+            continue
+        parsed.append(parts)
+    bottoms = [parts for parts in parsed if int(style_number(parts, 18, 2)) in (1, 2, 3)]
+    pool = bottoms or parsed
+    if not pool:
+        return 48.0, 20.0
+    best = max(pool, key=lambda parts: (counts.get(parts[0], 0), style_number(parts, 2, 0)))
+    return style_number(best, 2, 48), style_number(best, 21, 10)
+
+
+def japanese_metrics(size, margin):
+    """A slightly smaller Japanese line, sitting fully above the Chinese one."""
+    fitted = max(16, round(size * 0.72))
+    gap = max(8, round(size * 0.15))
+    return fitted, int(margin + size + gap)
+
+
+def ensure_playres(header, play_x=1920, play_y=1080):
+    if any(line.lower().startswith("playresy") for line in header):
+        return header
+    header = list(header)
+    if not any(line.strip() == "[Script Info]" for line in header):
+        header = ["[Script Info]", "ScriptType: v4.00+"] + header
+    inserted = []
+    done = False
+    for line in header:
+        inserted.append(line)
+        if not done and line.strip() == "[Script Info]":
+            inserted.append(f"PlayResX: {play_x}")
+            inserted.append(f"PlayResY: {play_y}")
+            done = True
+    return inserted
+
+
+def repair(text, play_x, play_y, jp_font="EPSON 太明朝体Ｂ"):
+    """Put PlayRes back and refit the Japanese style on an already merged script.
+
+    Dialogue timestamps stay untouched; only the canvas and the added style change.
+    """
+    text = text.lstrip("\ufeff")
+    header, styles = style_block(text)
+    header = [line for line in header if not line.lower().startswith(("playresx", "playresy"))]
+    header = ensure_playres(header, play_x, play_y)
+    cleaned, seen = [], False
+    for line in styles:
+        if line.strip().lower() == "[v4+ styles]":
+            if seen:
+                continue
+            seen = True
+        cleaned.append(line)
+    size, margin = japanese_metrics(*anchor_style(cleaned, parse_ass(text)))
+    refit = DEFAULT_JP_STYLE.format(font=jp_font, size=size, margin=margin).rstrip()
+    cleaned = [refit if line.strip().startswith("Style: 日文") else line for line in cleaned]
+    if not any(line.strip().startswith("Style: 日文") for line in cleaned):
+        cleaned.append(refit)
+    dialogue = [line for line in text.splitlines() if line.startswith("Dialogue:")]
+    lines = list(header)
+    if not seen:
+        lines.append("[V4+ Styles]")
+    lines.extend(cleaned)
+    lines.append("[Events]")
+    lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
+    lines.extend(dialogue)
+    return "\n".join(lines) + "\n"
 
 
 TYPESET = re.compile(r"\\pos|\\move|\\clip|\\fad|\\t\(|\\k[fo]?\\|\\[a-zA-Z]*c&H")
@@ -175,6 +279,7 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
     applied = force_offset if force_offset is not None else (offset if spread <= 0.6 else 0.0)
 
     header, styles = style_block(cn_text)
+    header = ensure_playres(header)
     cleaned = [line for line in styles if not line.strip().startswith("Style: 日文")]
     if not any(line.strip().lower().startswith("format:") for line in cleaned):
         cleaned.append("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
@@ -182,9 +287,14 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
                        "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, "
                        "MarginR, MarginV, Encoding")
     if not cn_is_ass:
-        cleaned.append(f"Style: 中文,{CN_FALLBACK_FONT},{jp_size + 20},&H00FFFFFF,&H000000FF,"
+        cleaned.append(f"Style: 中文,{CN_FALLBACK_FONT},60,&H00FFFFFF,&H000000FF,"
                        f"&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,15,134")
-    cleaned.append(DEFAULT_JP_STYLE.format(font=jp_font, size=jp_size, margin=jp_margin).rstrip())
+    fitted_size, fitted_margin = japanese_metrics(*anchor_style(cleaned, cn_events))
+    cleaned.append(DEFAULT_JP_STYLE.format(
+        font=jp_font,
+        size=jp_size if jp_size is not None else fitted_size,
+        margin=jp_margin if jp_margin is not None else fitted_margin,
+    ).rstrip())
 
     dialogue = []
     for event in cn_events:
@@ -207,7 +317,8 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
                 "offset": round(applied, 3), "spread": round(spread, 3), "matched": matched}
 
     lines = list(header)
-    lines.append("[V4+ Styles]")
+    if not any(line.strip().lower() == "[v4+ styles]" for line in cleaned):
+        lines.append("[V4+ Styles]")
     lines.extend(cleaned)
     lines.append("[Events]")
     lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
@@ -224,9 +335,10 @@ def main(argv=None):
     parser.add_argument("--jp", required=True, type=Path, help="Japanese ASS/SSA/SRT")
     parser.add_argument("--out", type=Path, help="merged ASS to write")
     parser.add_argument("--jp-font", default="EPSON 太明朝体Ｂ")
-    parser.add_argument("--jp-size", type=int, default=40)
-    parser.add_argument("--jp-margin", type=int, default=55,
-                        help="vertical margin of the Japanese line; keep above the Chinese one")
+    parser.add_argument("--jp-size", type=int, default=None,
+                        help="Japanese font size in PlayRes pixels; default follows the Chinese style")
+    parser.add_argument("--jp-margin", type=int, default=None,
+                        help="vertical margin of the Japanese line; default clears the Chinese line")
     parser.add_argument("--offset", type=float, default=None,
                         help="force a shift in seconds instead of using detection")
     parser.add_argument("--dry-run", action="store_true", help="report without writing")
