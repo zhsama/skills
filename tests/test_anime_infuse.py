@@ -175,16 +175,12 @@ class BilingualMerge(unittest.TestCase):
             self.assertIn("PlayResY: 1080", merged)
             self.assertEqual(merged.count("[V4+ Styles]"), 1)
             self.assertIn("Dialogue: 0,0:00:02.00,0:00:04.50,简体", merged)
-            self.assertIn("日文,,0,0,0,,最初の台詞", merged)
-            self.assertEqual(merged.count("Dialogue:"), 4)
-            # Chinese is 60px at margin 15. Japanese takes that bottom slot;
-            # the spoken Chinese line is lifted above it.
-            jp = next(line for line in merged.splitlines() if line.startswith("Style: 日文"))
-            fields = jp.split(",")
-            self.assertLess(int(fields[2]), 60)
-            self.assertEqual(int(fields[-2]), 15)
-            spoken = next(line for line in merged.splitlines() if line.endswith("第一句"))
-            self.assertGreater(int(spoken.split(",")[7]), 15)
+            self.assertEqual(merged.count("Dialogue:"), 2)
+            spoken = next(line for line in merged.splitlines() if "第一句" in line)
+            japanese = spoken.split("第一句", 1)[1]
+            self.assertIn("\\N{\\r日文", japanese)
+            self.assertIn("最初の台詞", japanese)
+            self.assertLess(japanese.index("\\N"), japanese.index("最初の台詞"))
 
     def test_repair_puts_playres_back(self):
         broken = """[Script Info]
@@ -204,14 +200,21 @@ Dialogue: 0,0:03:12.40,0:03:14.00,*Default,NTP,0000,0000,0000,,饭做好了
         self.assertIn("PlayResY: 1080", fixed)
         self.assertEqual(fixed.count("[V4+ Styles]"), 1)
         self.assertIn("饭做好了", fixed)
-        jp = next(line for line in fixed.splitlines() if line.startswith("Style: 日文"))
-        self.assertEqual(int(jp.split(",")[-2]), 30)
-        spoken = next(line for line in fixed.splitlines() if "饭做好了" in line)
-        self.assertGreater(int(spoken.split(",")[7]), 30)
-        # Top-aligned credits keep the style margin; only plain dialogue moves.
         self.assertIn("Style: Default,FZ,65", fixed)
-        self.assertTrue(any(line.startswith("Style: Default") and line.endswith(",30,1")
-                            for line in fixed.splitlines()))
+        broken_with_jp = broken.replace(
+            "饭做好了\n",
+            "饭做好了\nDialogue: 0,0:03:12.50,0:03:14.10,日文,,0,0,0,,あがったぞ\n"
+            "Dialogue: 0,0:00:01.00,0:00:02.00,*Default,NTP,0000,0000,0000,,{\\an8}片头\n",
+        )
+        fixed = module.repair(broken_with_jp, 1920, 1080)
+        spoken = next(line for line in fixed.splitlines() if "饭做好了" in line)
+        self.assertLess(spoken.index("饭做好了"), spoken.index("あがったぞ"))
+        self.assertIn("\\N{\\r日文", spoken)
+        self.assertEqual(spoken.split(",")[7], "0")
+        self.assertTrue(any("\\an8" in line and "片头" in line for line in fixed.splitlines()))
+        self.assertFalse(any(line.split(",")[3] == "日文" for line in fixed.splitlines()
+                             if line.startswith("Dialogue:") and "あがったぞ" in line
+                             and line.split(",")[3] == "日文"))
 
     def test_output_reads_as_bilingual(self):
         with tempfile.TemporaryDirectory() as directory:

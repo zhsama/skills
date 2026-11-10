@@ -168,36 +168,72 @@ def anchor_style(style_lines, events):
 
 
 def pair_layout(style_lines, events):
-    """Chinese translation above, Japanese original on the bottom.
-
-    The Japanese style keeps the Chinese style's margin. Spoken Chinese lines are
-    lifted by the Japanese font height. The style itself stays put, so top-aligned
-    credits and `\\pos` signs do not move.
-    """
+    """Chinese dialogue style, and a slightly smaller size for the Japanese line."""
     parts = anchor_style(style_lines, events)
     size = style_number(parts, 2, 48) if parts else 48
     margin = style_number(parts, 21, 10) if parts else 20
     jp_size = max(16, round(size * 0.72))
-    gap = max(8, round(jp_size * 0.15))
-    return (parts[0] if parts else "中文"), jp_size, int(margin), int(margin + jp_size + gap)
+    return (parts[0] if parts else "中文"), jp_size, int(margin)
 
 
-def lift_dialogue(raw, style_name, margin):
-    """Raise one bottom-aligned spoken line. Leave signs and explicit margins."""
-    if not raw.startswith("Dialogue:"):
-        return raw
-    fields = raw.split(",", 9)
-    if len(fields) < 10 or fields[3].lstrip("*").strip() != style_name:
-        return raw
-    if re.search(r"\\pos|\\move|\\an\d", fields[9]):
-        return raw
-    try:
-        if float(fields[7]) != 0:
-            return raw
-    except ValueError:
-        return raw
-    fields[7] = str(int(margin))
-    return ",".join(fields)
+def dialogue_rows(lines):
+    rows = []
+    for line in lines:
+        fields = line.split(",", 9)
+        if len(fields) < 10:
+            continue
+        start, end = stamp_seconds(fields[1]), stamp_seconds(fields[2])
+        if start is None or end is None:
+            continue
+        rows.append({"start": start, "end": end, "fields": fields, "raw": line})
+    return rows
+
+
+def combine_lines(lines, style_name, jp_size):
+    """One event per spoken line: Chinese first, Japanese after a line break.
+
+    A second simultaneous event is what players stack *above* the first one when
+    they ignore margins, which puts the Japanese line on top. `\\N` order is kept
+    by every renderer, so the translation stays the upper row.
+    """
+    rows = dialogue_rows(lines)
+    placed = re.compile(r"\\pos|\\move|\\an\d")
+
+    def spoken(row, name):
+        style = row["fields"][3].lstrip("*").strip()
+        return style == name and not placed.search(row["fields"][9])
+
+    chinese = [row for row in rows if spoken(row, style_name) and "\r日文" not in row["fields"][9]]
+    japanese = [row for row in rows if spoken(row, "日文")]
+    assigned = {}
+    for jp in japanese:
+        best, best_overlap = None, 0.3
+        for index, cn in enumerate(chinese):
+            overlap = min(cn["end"], jp["end"]) - max(cn["start"], jp["start"])
+            if overlap > best_overlap:
+                best, best_overlap = index, overlap
+        if best is not None:
+            assigned.setdefault(best, []).append(jp)
+    consumed = {id(jp) for group in assigned.values() for jp in group}
+    merged = []
+    for index, cn in enumerate(chinese):
+        group = sorted(assigned.get(index, []), key=lambda row: row["start"])
+        if not group:
+            merged.append(cn["raw"])
+            continue
+        start = min([cn["start"]] + [jp["start"] for jp in group])
+        end = max([cn["end"]] + [jp["end"] for jp in group])
+        fields = cn["fields"][:]
+        fields[1], fields[2] = ass_time(start), ass_time(end)
+        fields[7] = "0"
+        japanese_text = "\\N".join(jp["fields"][9] for jp in group)
+        fields[9] = "%s\\N{\\r日文\\fs%d}%s" % (fields[9], jp_size, japanese_text)
+        merged.append(",".join(fields))
+    chinese_ids = {id(row) for row in chinese}
+    kept = [row["raw"] for row in rows if id(row) not in consumed and id(row) not in chinese_ids]
+    result = merged + kept
+    result.sort(key=lambda line: stamp_seconds(line.split(",", 3)[1]) or 0)
+    return result
 
 
 def ensure_playres(header, play_x=1920, play_y=1080):
@@ -233,13 +269,13 @@ def repair(text, play_x, play_y, jp_font="EPSON 太明朝体Ｂ"):
                 continue
             seen = True
         cleaned.append(line)
-    style_name, size, jp_margin, cn_margin = pair_layout(cleaned, parse_ass(text))
+    style_name, size, jp_margin = pair_layout(cleaned, parse_ass(text))
     refit = DEFAULT_JP_STYLE.format(font=jp_font, size=size, margin=jp_margin).rstrip()
     cleaned = [refit if line.strip().startswith("Style: 日文") else line for line in cleaned]
     if not any(line.strip().startswith("Style: 日文") for line in cleaned):
         cleaned.append(refit)
-    dialogue = [lift_dialogue(line, style_name, cn_margin)
-                for line in text.splitlines() if line.startswith("Dialogue:")]
+    dialogue = combine_lines([line for line in text.splitlines() if line.startswith("Dialogue:")],
+                             style_name, size)
     lines = list(header)
     if not seen:
         lines.append("[V4+ Styles]")
@@ -315,28 +351,26 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
     if not cn_is_ass:
         cleaned.append(f"Style: 中文,{CN_FALLBACK_FONT},60,&H00FFFFFF,&H000000FF,"
                        f"&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,15,134")
-    style_name, fitted_size, fitted_jp_margin, fitted_cn_margin = pair_layout(cleaned, cn_events)
+    style_name, fitted_size, fitted_margin = pair_layout(cleaned, cn_events)
     size = jp_size if jp_size is not None else fitted_size
-    margin = jp_margin if jp_margin is not None else fitted_jp_margin
-    gap = max(8, round(size * 0.15))
-    cn_margin = fitted_cn_margin if jp_size is None and jp_margin is None else int(margin + size + gap)
+    margin = jp_margin if jp_margin is not None else fitted_margin
     cleaned.append(DEFAULT_JP_STYLE.format(font=jp_font, size=size, margin=margin).rstrip())
 
-    dialogue = []
+    pending = []
     for event in cn_events:
         if "raw" in event:
-            dialogue.append((event["start"], 0, lift_dialogue(event["raw"], style_name, cn_margin)))
+            pending.append(event["raw"])
         else:
             start, end = event["start"], event["end"]
             body = event["body"].replace("\n", "\\N")
-            dialogue.append((start, 0, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},中文,,0,0,{cn_margin},,{body}"))
+            pending.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},中文,,0,0,0,,{body}")
     for event in jp_events:
         start, end = event["start"] + applied, event["end"] + applied
         if start < 0:
             continue
         body = event["body"].replace("\n", "\\N")
-        dialogue.append((start, 1, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},日文,,0,0,0,,{body}"))
-    dialogue.sort(key=lambda item: (item[0], item[1]))
+        pending.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},日文,,0,0,0,,{body}")
+    dialogue = combine_lines(pending, style_name, size)
 
     if dry:
         return {"cn_events": len(cn_events), "jp_events": len(jp_events),
@@ -348,7 +382,7 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
     lines.extend(cleaned)
     lines.append("[Events]")
     lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
-    lines.extend(item[2] for item in dialogue)
+    lines.extend(dialogue)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {"cn_events": len(cn_events), "jp_events": len(jp_events),

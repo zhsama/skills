@@ -50,13 +50,23 @@ def strip_marks(text):
     return OVERRIDE.sub("", text).replace("\\N", " ").replace("\\n", " ").strip()
 
 
+RESET = re.compile(r"\{\\r([^}]*)\}")
+
+
 def add_line(styles, style, body):
-    cleaned = strip_marks(body)
-    if not cleaned:
-        return
-    bucket = styles.setdefault(style, {"lines": 0, "jp": 0, "zh": 0, "neutral": 0})
-    bucket["lines"] += 1
-    bucket[classify(cleaned)] += 1
+    """Count a dialogue, including a Japanese line appended with `{\\r日文}`."""
+    parts = RESET.split(body)
+    segments = [(style, parts[0])]
+    for index in range(1, len(parts), 2):
+        name = parts[index].strip() or style
+        segments.append((name, parts[index + 1] if index + 1 < len(parts) else ""))
+    for name, segment in segments:
+        cleaned = strip_marks(segment)
+        if not cleaned:
+            continue
+        bucket = styles.setdefault(name, {"lines": 0, "jp": 0, "zh": 0, "neutral": 0})
+        bucket["lines"] += 1
+        bucket[classify(cleaned)] += 1
 
 
 def analyze_text(text):
