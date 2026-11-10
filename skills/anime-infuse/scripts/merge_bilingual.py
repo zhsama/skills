@@ -141,7 +141,7 @@ def style_number(parts, index, default):
 
 
 def anchor_style(style_lines, events):
-    """The Chinese dialogue style the Japanese line has to clear.
+    """The Chinese dialogue style. Japanese takes its place at the bottom.
 
     Fansubs often mark the spoken style with a leading asterisk in the dialogue
     (`*Default`) while the style itself is named `Default`. Count both.
@@ -163,16 +163,41 @@ def anchor_style(style_lines, events):
     bottoms = [parts for parts in parsed if int(style_number(parts, 18, 2)) in (1, 2, 3)]
     pool = bottoms or parsed
     if not pool:
-        return 48.0, 20.0
-    best = max(pool, key=lambda parts: (counts.get(parts[0], 0), style_number(parts, 2, 0)))
-    return style_number(best, 2, 48), style_number(best, 21, 10)
+        return None
+    return max(pool, key=lambda parts: (counts.get(parts[0], 0), style_number(parts, 2, 0)))
 
 
-def japanese_metrics(size, margin):
-    """A slightly smaller Japanese line, sitting fully above the Chinese one."""
-    fitted = max(16, round(size * 0.72))
-    gap = max(8, round(size * 0.15))
-    return fitted, int(margin + size + gap)
+def pair_layout(style_lines, events):
+    """Chinese translation above, Japanese original on the bottom.
+
+    The Japanese style keeps the Chinese style's margin. Spoken Chinese lines are
+    lifted by the Japanese font height. The style itself stays put, so top-aligned
+    credits and `\\pos` signs do not move.
+    """
+    parts = anchor_style(style_lines, events)
+    size = style_number(parts, 2, 48) if parts else 48
+    margin = style_number(parts, 21, 10) if parts else 20
+    jp_size = max(16, round(size * 0.72))
+    gap = max(8, round(jp_size * 0.15))
+    return (parts[0] if parts else "中文"), jp_size, int(margin), int(margin + jp_size + gap)
+
+
+def lift_dialogue(raw, style_name, margin):
+    """Raise one bottom-aligned spoken line. Leave signs and explicit margins."""
+    if not raw.startswith("Dialogue:"):
+        return raw
+    fields = raw.split(",", 9)
+    if len(fields) < 10 or fields[3].lstrip("*").strip() != style_name:
+        return raw
+    if re.search(r"\\pos|\\move|\\an\d", fields[9]):
+        return raw
+    try:
+        if float(fields[7]) != 0:
+            return raw
+    except ValueError:
+        return raw
+    fields[7] = str(int(margin))
+    return ",".join(fields)
 
 
 def ensure_playres(header, play_x=1920, play_y=1080):
@@ -208,12 +233,13 @@ def repair(text, play_x, play_y, jp_font="EPSON 太明朝体Ｂ"):
                 continue
             seen = True
         cleaned.append(line)
-    size, margin = japanese_metrics(*anchor_style(cleaned, parse_ass(text)))
-    refit = DEFAULT_JP_STYLE.format(font=jp_font, size=size, margin=margin).rstrip()
+    style_name, size, jp_margin, cn_margin = pair_layout(cleaned, parse_ass(text))
+    refit = DEFAULT_JP_STYLE.format(font=jp_font, size=size, margin=jp_margin).rstrip()
     cleaned = [refit if line.strip().startswith("Style: 日文") else line for line in cleaned]
     if not any(line.strip().startswith("Style: 日文") for line in cleaned):
         cleaned.append(refit)
-    dialogue = [line for line in text.splitlines() if line.startswith("Dialogue:")]
+    dialogue = [lift_dialogue(line, style_name, cn_margin)
+                for line in text.splitlines() if line.startswith("Dialogue:")]
     lines = list(header)
     if not seen:
         lines.append("[V4+ Styles]")
@@ -289,21 +315,21 @@ def build(cn_path, jp_path, out_path, jp_font, jp_size, jp_margin, force_offset=
     if not cn_is_ass:
         cleaned.append(f"Style: 中文,{CN_FALLBACK_FONT},60,&H00FFFFFF,&H000000FF,"
                        f"&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,0,2,10,10,15,134")
-    fitted_size, fitted_margin = japanese_metrics(*anchor_style(cleaned, cn_events))
-    cleaned.append(DEFAULT_JP_STYLE.format(
-        font=jp_font,
-        size=jp_size if jp_size is not None else fitted_size,
-        margin=jp_margin if jp_margin is not None else fitted_margin,
-    ).rstrip())
+    style_name, fitted_size, fitted_jp_margin, fitted_cn_margin = pair_layout(cleaned, cn_events)
+    size = jp_size if jp_size is not None else fitted_size
+    margin = jp_margin if jp_margin is not None else fitted_jp_margin
+    gap = max(8, round(size * 0.15))
+    cn_margin = fitted_cn_margin if jp_size is None and jp_margin is None else int(margin + size + gap)
+    cleaned.append(DEFAULT_JP_STYLE.format(font=jp_font, size=size, margin=margin).rstrip())
 
     dialogue = []
     for event in cn_events:
         if "raw" in event:
-            dialogue.append((event["start"], 0, event["raw"]))
+            dialogue.append((event["start"], 0, lift_dialogue(event["raw"], style_name, cn_margin)))
         else:
             start, end = event["start"], event["end"]
             body = event["body"].replace("\n", "\\N")
-            dialogue.append((start, 0, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},中文,,0,0,0,,{body}"))
+            dialogue.append((start, 0, f"Dialogue: 0,{ass_time(start)},{ass_time(end)},中文,,0,0,{cn_margin},,{body}"))
     for event in jp_events:
         start, end = event["start"] + applied, event["end"] + applied
         if start < 0:
