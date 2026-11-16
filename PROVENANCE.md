@@ -10,9 +10,7 @@ This repository contains skills created or customized for zhsama with assistance
 
 - `claude-code-coordination` records zhsama's Codex-to-Claude Code workflow: identify the original live session, send a scoped handoff, verify receipt and reply, and inspect the resulting evidence. Discovery was checked against Claude Code 2.1.325; terminal delivery follows Ghostty's installed scripting dictionary. No private transcripts, live session identifiers, or machine-specific paths are included.
 
-- `disk-junk-scan` was imported from the installed macOS disk-scan skill. Its instructions, inspection notes, and Python tool messages are now in English. It scans developer and coding-agent leftovers and stays read-only until cleanup is explicitly approved. Machine defaults and local backup notes are maintained separately in the private `personal-context` skill.
-
-- `anime-infuse` records the bilingual-subtitle acquisition, verification, and media-library workflow. Its personal library location and response-language default are maintained in the same private context.
+- `disk-junk-scan` and `anime-infuse`, including their scripts and tests, are now maintained in [zhsama/skills-private](https://github.com/zhsama/skills-private). This repository retains catalog references and its existing Git history.
 
 - `issue-brief` was created from zhsama's issue discovery, reproduction, learning, and contribution workflow. It is not an upstream project policy.
 - `issue-review-workflow` records zhsama's process for independent issue verification, user approval of the problem list and repair scope, and review of the resulting changes.

@@ -18,7 +18,7 @@ List the available skills:
 npx skills add zhsama/skills --list
 ```
 
-Install all skills globally for Codex:
+Install all public skills globally for Codex:
 
 ```sh
 npx skills add zhsama/skills -g -a codex --skill '*' -y
@@ -38,23 +38,26 @@ npx skills add zhsama/skills -g -a codex cursor --skill git-workflow simplified 
 
 The [CLI reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md) and [agent directory table](https://github.com/vercel-labs/skills/blob/main/docs/agents.md) describe other supported targets.
 
-## Optional personal context
+## Private workflows
 
-`disk-junk-scan` and `anime-infuse` read their matching reference from the optional
-`personal-context` skill. Personal defaults live in the private
-`zhsama/skills-private` repository and must be installed separately, in the same
-scope and for the same agents as the shared skills:
+`disk-junk-scan`, `anime-infuse`, and `personal-context` are maintained entirely
+in [zhsama/skills-private](https://github.com/zhsama/skills-private). The public
+catalog contains references only. When these skills are requested, install them
+from the private repository using an account with access:
 
 ```sh
-npx skills add zhsama/skills-private -g -a codex --skill personal-context
+npx skills add zhsama/skills-private -g -a codex --skill disk-junk-scan anime-infuse personal-context
 ```
 
-Only install this source when the user wants their personal defaults and has
-repository access. A Markdown reference does not make the skills CLI fetch a
-dependency, and CLI 1.9.0 skips symlinks pointing outside a skill directory.
-Keep the public skills usable without this optional source. Resolve installed
-context through the skill catalog or a sibling `personal-context` directory;
-do not hardcode an agent's installation path.
+Keep the private workflows and their context in the same installation scope.
+For existing installations, preserve local modifications, reinstall the selected
+names from the private source, and verify their source records before restoring
+local modifications. See the private repository's installation guide.
+
+A Markdown reference does not make the CLI fetch a dependency. Do not add public
+placeholder skills with the same names: installing them could replace a complete
+private installation. Installations and updates of the public source cover only
+the skills distributed here.
 
 ## Global instructions
 

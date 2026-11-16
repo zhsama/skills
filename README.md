@@ -11,11 +11,9 @@ My agent skills and coding preferences. Codex-only workflows are marked below.
 | [issue-review-workflow](skills/shared/issue-review-workflow/SKILL.md) | Cross-agent | Coordinate independent reviews of issues and fixes. |
 | [ablation-experiment](skills/shared/ablation-experiment/SKILL.md) | Cross-agent | Test whether code or a design choice is necessary. |
 | [node-modules-inspector](skills/shared/node-modules-inspector/SKILL.md) | Cross-agent | Inspect dependency duplicates, sizes, and maintenance opportunities. |
-| [disk-junk-scan](skills/shared/disk-junk-scan/SKILL.md) | Cross-agent | Find reclaimable development files on macOS. |
 | [codex-downgrade](skills/codex/codex-downgrade/SKILL.md) | Codex only | Audit the serving model using local Codex sessions and routing evidence. |
 | [claude-code-coordination](skills/codex/claude-code-coordination/SKILL.md) | Codex only | Send scoped handoffs from Codex to an original Claude Code session and verify the reply. |
 | [sol-max-subagents](skills/codex/sol-max-subagents/SKILL.md) | Codex only | Dispatch and coordinate Sol Max workers through Codex's subagent tools. |
-| [anime-infuse](skills/shared/anime-infuse/SKILL.md) | Cross-agent | Download anime with bilingual Chinese/Japanese subtitles into an Infuse library. |
 
 Cross-agent skills still require the tools and platform described in each skill.
 Sources live in `skills/shared/` and `skills/codex/`; skill names and invocation
@@ -23,7 +21,7 @@ commands stay the same.
 
 ## Install
 
-Install all skills globally for Codex:
+Install all public skills globally for Codex:
 
 ```sh
 npx skills add zhsama/skills -g -a codex --skill '*'
@@ -46,17 +44,24 @@ leaf skill directory into `${CODEX_HOME:-$HOME/.codex}/skills`. The CLI's `-a co
 destination is shared with other agents; see [AGENTS.md](AGENTS.md) for installation
 and migration details.
 
-`disk-junk-scan` and `anime-infuse` optionally read workflow references from an
-installed `personal-context` skill. Personal paths are maintained separately in
+## Private skills
+
+These workflows are maintained in
 [zhsama/skills-private](https://github.com/zhsama/skills-private), which requires
-repository access:
+repository access. This public repository contains only these references:
+
+| Skill | Source |
+| --- | --- |
+| `disk-junk-scan` | [Private skill](https://github.com/zhsama/skills-private/tree/main/skills/disk-junk-scan) |
+| `anime-infuse` | [Private skill](https://github.com/zhsama/skills-private/tree/main/skills/anime-infuse) |
+| `personal-context` | [Personal defaults](https://github.com/zhsama/skills-private/tree/main/skills/personal-context) |
 
 ```sh
-npx skills add zhsama/skills-private -g -a codex --skill personal-context
+npx skills add zhsama/skills-private -g -a codex --skill disk-junk-scan anime-infuse personal-context
 ```
 
-Install it in the same scope as the shared skills. Markdown references do not
-install dependencies; the shared skills also work without personal context.
+Markdown references do not install dependencies. Install the private source
+separately; installing all public skills does not install these workflows.
 
 ## Usage
 

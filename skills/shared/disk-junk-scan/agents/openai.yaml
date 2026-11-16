@@ -1,4 +1,0 @@
-interface:
-  display_name: "Disk Junk Scan"
-  short_description: "Rank reclaimable developer disk usage on macOS by risk"
-  default_prompt: "Use $disk-junk-scan to scan reclaimable development files, show me the ranked table, and wait for my approval before deleting anything."
