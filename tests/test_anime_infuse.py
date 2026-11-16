@@ -9,10 +9,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECK = ROOT / "skills/anime-infuse/scripts/check_subs.py"
-TORRENT = ROOT / "skills/anime-infuse/scripts/torrent_files.py"
-MERGE = ROOT / "skills/anime-infuse/scripts/merge_bilingual.py"
-PLAN = ROOT / "skills/anime-infuse/scripts/plan_select.py"
+CHECK = ROOT / "skills/shared/anime-infuse/scripts/check_subs.py"
+TORRENT = ROOT / "skills/shared/anime-infuse/scripts/torrent_files.py"
+MERGE = ROOT / "skills/shared/anime-infuse/scripts/merge_bilingual.py"
+PLAN = ROOT / "skills/shared/anime-infuse/scripts/plan_select.py"
 
 ASS_BILINGUAL = """[Script Info]
 ScriptType: v4.00+

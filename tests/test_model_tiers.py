@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 
-DETECTOR = Path(__file__).resolve().parents[1] / "skills/codex-downgrade/scripts/codex_downgrade.py"
+DETECTOR = Path(__file__).resolve().parents[1] / "skills/codex/codex-downgrade/scripts/codex_downgrade.py"
 
 
 def audit_events(events, ranks=None):

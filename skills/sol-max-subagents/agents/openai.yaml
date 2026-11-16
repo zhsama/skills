@@ -1,4 +1,0 @@
-interface:
-  display_name: "Sol Max Subagents"
-  short_description: "Coordinate Sol Max subagents and verify their results"
-  default_prompt: "Use $sol-max-subagents to assess which tasks benefit from delegation, choose suitable workers and their count, and coordinate and verify the results."

@@ -4,9 +4,13 @@ This repository contains zhsama's skills and global preferences. Use this guide 
 
 ## Installation
 
-Use the [skills CLI](https://github.com/vercel-labs/skills). The commands below were checked with version 1.7.6, which requires Node.js 22.20 or later, and Git for repository sources. Inspect the installed CLI's help if its version differs.
+Use the [skills CLI](https://github.com/vercel-labs/skills). The commands below were checked with version 1.9.0, which requires Node.js 22.20 or later, and Git for repository sources. Inspect the installed CLI's help if its version differs.
 
 Read the requested skills' `compatibility` fields and instructions before installing. Installation provides instructions and bundled scripts; it does not provision the models, tools, credentials, or services they use.
+
+Use the catalog's agent scope when selecting skills. Codex-only entries are intended to run from Codex; select cross-agent entries for other agents. A Codex example or `agents/openai.yaml` file alone does not make an otherwise portable skill Codex-only.
+
+Sources are grouped as `skills/codex/<name>/` and `skills/shared/<name>/`. Both CLI 1.7.6 and 1.9.0 discover these nested sources without `--full-depth`. Keep each skill's `name` unchanged when moving it; installation and invocation still use that name. Install or link each leaf skill directory into the agent's skill root, rather than linking the whole category directory.
 
 List the available skills:
 
@@ -27,8 +31,8 @@ npx skills add zhsama/skills -g -a codex cursor --skill git-workflow simplified 
 ```
 
 - Use the scope and agents requested by the user. Omit `-g` for a project installation and run the command from that project's root.
-- Use `--skill '*'` for every skill in this source. `--all` also selects every agent, so it is unsuitable when the user named only some agents.
-- `-a` selects destinations, not an access boundary. In CLI 1.7.6, Codex and Cursor both install into `~/.agents/skills`, even with `--copy`. That flag creates independent copies for agents with dedicated directories, such as Claude Code. If strict isolation between shared-directory agents is required, check their supported configuration instead of treating `-a` as isolation.
+- Use `--skill '*'` only when every skill supports the selected agents. This source includes Codex-only skills, so select skills by name when targeting other agents. `--all` also selects every agent, so it is unsuitable when the user named only some agents.
+- `-a` selects destinations, not an access boundary. In CLI 1.9.0, Codex installs into the canonical `~/.agents/skills` directory, even with `--copy`; other agents can share its contents through their own discovery or links. For a Codex-only installation, copy or link each selected leaf directory into `${CODEX_HOME:-$HOME/.codex}/skills`. Category names and descriptions do not enforce installation filtering.
 - Before replacing an existing skill, compare its files and recorded source with the requested version. Preserve local customizations in an ignored project-scoped backup and resolve substantive differences before overwriting them. Reinstalling an unchanged upstream copy needs no additional confirmation.
 - Keep downloads, backups, and verification logs in an ignored `.local/` directory in the working checkout. Do not add them to the distributed skills.
 
@@ -60,6 +64,8 @@ npx skills update -g git-workflow simplified
 
 For a complete refresh of this source, rerun its scoped `add` command. Do not run an unrestricted global update as a substitute: it also affects skills installed from unrelated sources. Refresh global instructions separately by comparing `rules/AGENTS.md` with the installed file.
 
+When a source directory moves, update README links, tests, CI paths, and any local links pointing into the checkout. Existing installed copies continue to work. If an older installation record cannot resolve the new source path, reinstall only the affected skill by name from the repository root.
+
 `simplified` replaces `ludwig-personal-code-review-preferences`. If the old name is installed, preserve its customizations, install and verify `simplified`, then remove the old entry from the intended scope and agents. An update of the old name does not install the replacement. Check shared directories before removing a skill used by another agent.
 
 ## Verification
@@ -74,14 +80,14 @@ Report which skills, scope, and agents were installed, whether global rules were
 
 ## Maintenance
 
-- Keep each skill under `skills/<name>/` with every resource it references. Write instructions, descriptions, examples, and tool messages in English; preserve explicit response-language preferences.
+- Keep each skill under `skills/codex/<name>/` or `skills/shared/<name>/` with every resource it references. Do not put a `SKILL.md` at a category root: the CLI treats that directory as a skill and stops discovering its descendants. Write instructions, descriptions, examples, and tool messages in English; preserve explicit response-language preferences.
 - Keep README concise: purpose, catalog, basic installation, and a few examples. Put detailed operations in this guide and origins in [PROVENANCE.md](PROVENANCE.md).
 - Maintain `rules/AGENTS.md` as the global preference source. Changes to the current local rules should be reconciled here rather than stored as another tracked backup.
 - Preserve upstream notices with copied or adapted third-party files. Keep private session data, account configuration, and machine-specific paths out of tracked content.
 - After skill changes, run the reference validator and existing regression suite. For documentation changes, check links and any installation commands affected by the change.
 
 ```sh
-for skill in skills/*/; do
+for skill in skills/*/*/; do
   uvx --from skills-ref==0.1.1 agentskills validate "$skill" || exit 1
 done
 python3 -m unittest discover -s tests

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Code Coordination"
+  short_description: "Codex-only handoffs to an original Claude Code session"
+  default_prompt: "Use $claude-code-coordination from Codex to align these findings with the original Claude Code session and verify its reply."

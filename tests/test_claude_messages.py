@@ -6,7 +6,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skills/claude-code-coordination/scripts/read_messages.py"
+SCRIPT = ROOT / "skills/codex/claude-code-coordination/scripts/read_messages.py"
 SPEC = importlib.util.spec_from_file_location("claude_messages", SCRIPT)
 READER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(READER)

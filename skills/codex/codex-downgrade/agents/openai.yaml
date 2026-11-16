@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Downgrade"
+  short_description: "Codex-only audit of the model serving a session"
+  default_prompt: "Use $codex-downgrade in Codex to audit recent sessions and check whether the serving model matched the one I selected."

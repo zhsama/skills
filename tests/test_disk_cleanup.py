@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 
-APPLY = Path(__file__).resolve().parents[1] / "skills/disk-junk-scan/scripts/apply.py"
+APPLY = Path(__file__).resolve().parents[1] / "skills/shared/disk-junk-scan/scripts/apply.py"
 
 
 class CleanupSelection(unittest.TestCase):

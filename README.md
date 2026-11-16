@@ -1,21 +1,25 @@
 # Skills
 
-My agent skills and coding preferences.
+My agent skills and coding preferences. Codex-only workflows are marked below.
 
-| Skill | Purpose |
-| --- | --- |
-| [project-init](skills/project-init/SKILL.md) | Start JavaScript and TypeScript projects with my preferred tools. |
-| [simplified](skills/simplified/SKILL.md) | Review and simplify TypeScript code. |
-| [git-workflow](skills/git-workflow/SKILL.md) | Handle issues, commits, pull requests, and stacks. |
-| [issue-brief](skills/issue-brief/SKILL.md) | Find and explain an open-source bug worth working on. |
-| [issue-review-workflow](skills/issue-review-workflow/SKILL.md) | Coordinate independent reviews of issues and fixes. |
-| [ablation-experiment](skills/ablation-experiment/SKILL.md) | Test whether code or a design choice is necessary. |
-| [node-modules-inspector](skills/node-modules-inspector/SKILL.md) | Inspect dependency duplicates, sizes, and maintenance opportunities. |
-| [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | Find reclaimable development files on macOS. |
-| [codex-downgrade](skills/codex-downgrade/SKILL.md) | Audit which model served a Codex session. |
-| [claude-code-coordination](skills/claude-code-coordination/SKILL.md) | Let Codex coordinate with an original Claude Code session and verify the reply. |
-| [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | Delegate work to Sol Max subagents. |
-| [anime-infuse](skills/anime-infuse/SKILL.md) | Download anime with bilingual Chinese/Japanese subtitles into an Infuse library. |
+| Skill | Agent scope | Purpose |
+| --- | --- | --- |
+| [project-init](skills/shared/project-init/SKILL.md) | Cross-agent | Start JavaScript and TypeScript projects with my preferred tools. |
+| [simplified](skills/shared/simplified/SKILL.md) | Cross-agent | Review and simplify TypeScript code. |
+| [git-workflow](skills/shared/git-workflow/SKILL.md) | Cross-agent | Handle issues, commits, pull requests, and stacks. |
+| [issue-brief](skills/shared/issue-brief/SKILL.md) | Cross-agent | Find and explain an open-source bug worth working on. |
+| [issue-review-workflow](skills/shared/issue-review-workflow/SKILL.md) | Cross-agent | Coordinate independent reviews of issues and fixes. |
+| [ablation-experiment](skills/shared/ablation-experiment/SKILL.md) | Cross-agent | Test whether code or a design choice is necessary. |
+| [node-modules-inspector](skills/shared/node-modules-inspector/SKILL.md) | Cross-agent | Inspect dependency duplicates, sizes, and maintenance opportunities. |
+| [disk-junk-scan](skills/shared/disk-junk-scan/SKILL.md) | Cross-agent | Find reclaimable development files on macOS. |
+| [codex-downgrade](skills/codex/codex-downgrade/SKILL.md) | Codex only | Audit the serving model using local Codex sessions and routing evidence. |
+| [claude-code-coordination](skills/codex/claude-code-coordination/SKILL.md) | Codex only | Send scoped handoffs from Codex to an original Claude Code session and verify the reply. |
+| [sol-max-subagents](skills/codex/sol-max-subagents/SKILL.md) | Codex only | Dispatch and coordinate Sol Max workers through Codex's subagent tools. |
+| [anime-infuse](skills/shared/anime-infuse/SKILL.md) | Cross-agent | Download anime with bilingual Chinese/Japanese subtitles into an Infuse library. |
+
+Cross-agent skills still require the tools and platform described in each skill.
+Sources live in `skills/shared/` and `skills/codex/`; skill names and invocation
+commands stay the same.
 
 ## Install
 
@@ -31,10 +35,16 @@ Or choose individual skills:
 npx skills add zhsama/skills -g -a codex --skill git-workflow simplified
 ```
 
-`claude-code-coordination` is for Codex. For a Codex-only installation from a
-persistent local checkout, link its directory into `${CODEX_HOME:-$HOME/.codex}/skills`.
-The CLI's `-a codex` destination is shared with other agents; see
-[AGENTS.md](AGENTS.md) before choosing that installation method.
+For another agent, select shared skills by name or install only the shared group:
+
+```sh
+npx skills add https://github.com/zhsama/skills/tree/main/skills/shared -g -a claude-code --skill '*'
+```
+
+For a Codex-only installation from a persistent local checkout, link each selected
+leaf skill directory into `${CODEX_HOME:-$HOME/.codex}/skills`. The CLI's `-a codex`
+destination is shared with other agents; see [AGENTS.md](AGENTS.md) for installation
+and migration details.
 
 ## Usage
 

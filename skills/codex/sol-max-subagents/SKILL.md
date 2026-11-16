@@ -1,10 +1,12 @@
 ---
 name: sol-max-subagents
-description: "Consider Sol Max when selecting workers for independent implementation or testing with a clear plan and acceptance criteria, or when the user requests Sol Max subagents. Choose whether and what to delegate, dispatch suitable work to gpt-6.1-sol at max, and verify the results."
-compatibility: "Requires a subagent runtime supporting gpt-6.1-sol, max reasoning effort, and the documented dispatch and coordination parameters."
+description: "Codex-only Sol Max delegation. Use in Codex when selecting workers for independent implementation or testing with a clear plan and acceptance criteria, or when the user requests Sol Max subagents. Choose what to delegate, dispatch suitable work to gpt-6.1-sol at max through Codex's subagent tools, and verify the results."
+compatibility: "Codex only. Requires Codex subagent tools supporting gpt-6.1-sol, max reasoning effort, and fork_turns: none."
 ---
 
 # Sol Max Subagents
+
+Use this skill only from Codex. Its dispatch and coordination instructions depend on Codex's subagent runtime and do not apply to Claude Code or other agents.
 
 The lead keeps its current model and owns task assignment, integration, and final verification. Workers selected for Sol use `gpt-6.1-sol` with `max` reasoning effort.
 
@@ -20,7 +22,7 @@ Use the current request and any follow-ups to determine the goals, count, and li
 
 ## Dispatch Sol workers
 
-For work assigned to Sol, use the runtime's subagent tool, such as `collaboration.spawn_agent`, within the current chat. Pass the dispatch settings explicitly as shown below.
+For work assigned to Sol, use Codex's `collaboration.spawn_agent` within the current chat. Pass the dispatch settings explicitly as shown below.
 
 ```json
 {
@@ -32,7 +34,7 @@ For work assigned to Sol, use the runtime's subagent tool, such as `collaboratio
 }
 ```
 
-Adapt the task name and message to the assignment. Use unique lowercase letters, digits, and underscores for `task_name`. When overriding the model, use `fork_turns: "none"` and include the approved plan, relevant context, owned files, acceptance criteria, checks, and permitted actions in the message, or use limited history if the runtime supports it. A full-history fork does not support this model override.
+Adapt the task name and message to the assignment. Use unique lowercase letters, digits, and underscores for `task_name`. When overriding the model, use `fork_turns: "none"` and include the approved plan, relevant context, owned files, acceptance criteria, checks, and permitted actions in the message. A full-history fork does not support this model override.
 
 Give each task clear boundaries. In a shared working directory, assign file ownership and identify dependencies so concurrent edits do not overwrite one another. Each subagent completes its assigned task without creating additional subagents.
 

@@ -19,12 +19,12 @@ jobs:
       - run: python -m pip install skills-ref==0.1.1
       - name: Validate each skill
         run: |
-          for skill in skills/*/; do
+          for skill in skills/*/*/; do
             agentskills validate "$skill"
           done
       - name: Check detector CLI
         run: |
-          python skills/codex-downgrade/scripts/codex_downgrade.py session --help
-          python skills/codex-downgrade/scripts/codex_downgrade.py official --help
+          python skills/codex/codex-downgrade/scripts/codex_downgrade.py session --help
+          python skills/codex/codex-downgrade/scripts/codex_downgrade.py official --help
       - name: Check skill behavior
         run: python -m unittest discover -s tests

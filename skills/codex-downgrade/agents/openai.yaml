@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codex Downgrade"
-  short_description: "Check which model actually served a Codex session"
-  default_prompt: "Use $codex-downgrade to audit recent Codex sessions and check whether the serving model matched the one I selected."

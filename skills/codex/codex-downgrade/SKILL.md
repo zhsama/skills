@@ -1,12 +1,12 @@
 ---
 name: codex-downgrade
-description: "Audit the model that actually served a Codex session. Use when the user suspects a downgrade, model swap, reroute, safety buffering, quota-related fallback, or asks to audit the current or recent sessions."
-compatibility: "Requires Python 3.11+ and access to local Codex session and configuration files. Online probing additionally requires network access and Codex ChatGPT credentials."
+description: "Codex-only model audit. Use within Codex when the user suspects a downgrade, model swap, reroute, safety buffering, quota-related fallback, or asks which model actually served the current or recent Codex sessions."
+compatibility: "Codex only. Requires Python 3.11+ and access to local Codex session and configuration files. Online probing additionally requires network access and Codex ChatGPT credentials."
 ---
 
 # Codex Downgrade
 
-Check whether Codex served the model the user selected. Use the model slug declared by the backend, routing headers, and client reroute logs as evidence. Answer quality cannot establish which model served a request.
+Use this skill from Codex to check whether it served the model the user selected. It audits Codex sessions, not the serving models of other agents. Use the model slug declared by the backend, routing headers, and client reroute logs as evidence. Answer quality cannot establish which model served a request.
 
 The detector at `scripts/codex_downgrade.py` uses the Python 3.11+ standard library. It reads from `$CODEX_HOME`, or `~/.codex` by default.
 
@@ -16,12 +16,14 @@ Start with `session` unless the user specifies otherwise. Run `official` only wh
 
 Use `--session-id` if the current session ID is known. Otherwise start with `--sessions 3`.
 
-```bash
-SCRIPT="$HOME/.agents/skills/codex-downgrade/scripts/codex_downgrade.py"
+Resolve the script from this skill's installed directory; the installation may be in Codex's own skill directory or a shared skill directory.
 
-python3 "$SCRIPT" session --sessions 3
-python3 "$SCRIPT" session --session-id <uuid-or-prefix>
-python3 "$SCRIPT" official --model gpt-6-astra
+```bash
+CODEX_AUDIT_SCRIPT="/absolute/path/to/codex-downgrade/scripts/codex_downgrade.py"
+
+python3 "$CODEX_AUDIT_SCRIPT" session --sessions 3
+python3 "$CODEX_AUDIT_SCRIPT" session --session-id <uuid-or-prefix>
+python3 "$CODEX_AUDIT_SCRIPT" official --model gpt-6-astra
 ```
 
 Use `--json` for machine-readable results, `--redact` for a report intended for sharing, and `--evidence` to show the raw evidence.
