@@ -8,6 +8,8 @@ This repository contains skills created or customized for zhsama with assistance
 
 - `codex-downgrade` is based on the detector zhsama supplied on 2026-09-08. This repository maintains its model tiers and reporting. Its original author and upstream URL were not supplied.
 
+- `claude-code-coordination` records zhsama's Codex-to-Claude Code workflow: identify the original live session, send a scoped handoff, verify receipt and reply, and inspect the resulting evidence. Discovery was checked against Claude Code 2.1.325; terminal delivery follows Ghostty's installed scripting dictionary. No private transcripts, live session identifiers, or machine-specific paths are included.
+
 - `disk-junk-scan` was imported from the installed macOS disk-scan skill. Its instructions, inspection notes, and Python tool messages are now in English. It scans developer and coding-agent leftovers and stays read-only until cleanup is explicitly approved. No machine inventory or personal paths are included.
 
 - `issue-brief` was created from zhsama's issue discovery, reproduction, learning, and contribution workflow. It is not an upstream project policy.

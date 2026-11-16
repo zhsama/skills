@@ -13,6 +13,7 @@ My agent skills and coding preferences.
 | [node-modules-inspector](skills/node-modules-inspector/SKILL.md) | Inspect dependency duplicates, sizes, and maintenance opportunities. |
 | [disk-junk-scan](skills/disk-junk-scan/SKILL.md) | Find reclaimable development files on macOS. |
 | [codex-downgrade](skills/codex-downgrade/SKILL.md) | Audit which model served a Codex session. |
+| [claude-code-coordination](skills/claude-code-coordination/SKILL.md) | Let Codex coordinate with an original Claude Code session and verify the reply. |
 | [sol-max-subagents](skills/sol-max-subagents/SKILL.md) | Delegate work to Sol Max subagents. |
 | [anime-infuse](skills/anime-infuse/SKILL.md) | Download anime with bilingual Chinese/Japanese subtitles into an Infuse library. |
 
@@ -29,6 +30,11 @@ Or choose individual skills:
 ```sh
 npx skills add zhsama/skills -g -a codex --skill git-workflow simplified
 ```
+
+`claude-code-coordination` is for Codex. For a Codex-only installation from a
+persistent local checkout, link its directory into `${CODEX_HOME:-$HOME/.codex}/skills`.
+The CLI's `-a codex` destination is shared with other agents; see
+[AGENTS.md](AGENTS.md) before choosing that installation method.
 
 ## Usage
 
