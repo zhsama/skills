@@ -8,7 +8,9 @@ compatibility: "macOS with aria2c, mkvmerge, ffprobe, and python3. Sites used fo
 
 Turn "I want this show with Chinese-Japanese subtitles on my Apple devices" into playable files. Four stages, each with a verification step, because most failures here are silent: a torrent that looks alive, subtitles that turn out to be monolingual, or files that Infuse cannot match.
 
-Respond in Chinese unless the user writes in another language.
+## Personal defaults
+
+If the `personal-context` skill is installed, read its `references/anime-infuse.md` for the library location and response preferences. Resolve that skill from the skill catalog or as a sibling directory under the same installed skill root. These defaults are optional; an explicit user request takes precedence.
 
 ## Stage 1 — Find a release
 
@@ -132,10 +134,10 @@ It reports `complete` / `partial` / `missing` per file and prints the exact `--s
 
 ## Stage 4 — Mux and file into Infuse
 
-Infuse reads a local folder tree; on macOS its configured source is `~/Movies/Infuse`. Follow the naming convention Plex, Jellyfin, and Infuse share:
+Use the library directory configured as an Infuse source, supplied by the user or by the optional personal defaults. Confirm the destination before copying files if it is unknown; Infuse has no assumed local library path here. Follow the naming convention Plex, Jellyfin, and Infuse share:
 
 ```
-~/Movies/Infuse/
+<library-root>/
 ├── Movies/<Title (Year)>/<Title (Year)>.mkv
 └── TV Shows/<Title (Year)>/Season 01/<Title> - S01E01 - <Episode Title>.mkv
 ```

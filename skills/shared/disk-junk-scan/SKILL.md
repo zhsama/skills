@@ -6,6 +6,10 @@ compatibility: "Requires macOS and Python 3 with the standard library. Cleanup c
 
 # Disk Junk Scan
 
+## Personal defaults
+
+If the `personal-context` skill is installed, read its `references/disk-junk-scan.md` for repository roots and local inspection notes. Resolve that skill from the skill catalog or as a sibling directory under the same installed skill root. These defaults are optional; an explicit user request takes precedence. Without them, scan the current directory or the repository root supplied by the user.
+
 ## Scope
 
 Consider these development and coding-agent artifacts when removal can reclaim meaningful space.
@@ -43,16 +47,17 @@ Apply these exclusions to scripted scans and manual inspection.
 
 ### Scan once
 
-Set `PLAN` to a new file path in the project's ignored temporary directory.
+Set `PLAN` to a new file path in the project's ignored temporary directory. Resolve `SKILL_DIR` from this skill's actual location; do not assume a particular agent's installation directory.
 
 ```bash
-S=~/.agents/skills/disk-junk-scan/scripts
+SKILL_DIR=/absolute/path/to/disk-junk-scan
+S="$SKILL_DIR/scripts"
 python3 "$S/scan.py" --plan "$PLAN"
 ```
 
 The table goes to standard output. `--plan` writes the same rows to disk. `--json` prints JSON instead of the table. Avoid a second scan just to obtain JSON.
 
-`scan.py` runs the machine scan (`scan_machine.py`) alongside repository scans (`scan_repo.py`) for main repositories under `--repos-root`. It combines and deduplicates the results. For one repository, use `python3 $S/scan_repo.py <repo>`.
+`scan.py` runs the machine scan (`scan_machine.py`) alongside repository scans (`scan_repo.py`) for main repositories under `--repos-root` (the current directory by default). Pass `--repos-root <directory>` when using a personal default or scanning another repository tree. It combines and deduplicates the results. For one repository, use `python3 "$S/scan_repo.py" <repo>`.
 
 The table columns are `# | Path | GiB | Category | Tier | Evidence | Action`. Rows are sorted by size, followed by totals for tiers A, B, and C. Each row number matches its JSON `id`, so a request to remove rows 4 and 6 maps to `--rows 4,6`. The scanner folds small directories below `--min-mib` by worktree or temporary root. A folded row records one command covering its members.
 

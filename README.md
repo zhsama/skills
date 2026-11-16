@@ -46,6 +46,18 @@ leaf skill directory into `${CODEX_HOME:-$HOME/.codex}/skills`. The CLI's `-a co
 destination is shared with other agents; see [AGENTS.md](AGENTS.md) for installation
 and migration details.
 
+`disk-junk-scan` and `anime-infuse` optionally read workflow references from an
+installed `personal-context` skill. Personal paths are maintained separately in
+[zhsama/skills-private](https://github.com/zhsama/skills-private), which requires
+repository access:
+
+```sh
+npx skills add zhsama/skills-private -g -a codex --skill personal-context
+```
+
+Install it in the same scope as the shared skills. Markdown references do not
+install dependencies; the shared skills also work without personal context.
+
 ## Usage
 
 ```text
@@ -59,3 +71,8 @@ See [AGENTS.md](AGENTS.md) for installation options, updates, and maintenance.
 My global instructions live in [rules/AGENTS.md](rules/AGENTS.md).
 
 Some workflows were informed by [Anthony Fu's skills](https://github.com/antfu/skills).
+
+## License
+
+[MIT](LICENSE). Adapted third-party files retain their own copyright notices;
+see [PROVENANCE.md](PROVENANCE.md).

@@ -100,8 +100,8 @@ VERSION_MANAGERS = [
     (f"{HOME}/.pyenv/versions", "Python versions (pyenv)", ["pyenv", "uninstall", "-f"]),
 ]
 AGENT_ROOTS = [f"{HOME}/.codex", f"{HOME}/.claude", f"{HOME}/.cursor", f"{HOME}/.conductor", f"{HOME}/conductor"]
-AGENT_CACHE_NAMES = {"cache", "log", "logs", "shell_snapshots", "debug", "generated_images", "pet-runs"}
-AGENT_BACKUP_NAMES = {"tmp", ".tmp", "pet-backups"}
+AGENT_CACHE_NAMES = {"cache", "log", "logs", "shell_snapshots", "debug", "generated_images"}
+AGENT_BACKUP_NAMES = {"tmp", ".tmp"}
 TEMP_ROOTS = ["/private/tmp", os.environ.get("TMPDIR", "")]
 DEV_MARKERS = {".git", "package.json", "Cargo.toml", "pyproject.toml", "go.mod", "node_modules", "target", "pnpm-lock.yaml"}
 TEST_CACHE_PREFIXES = ("node-compile-cache", "metro-cache", "v8-compile-cache", "tsx-", "jest_", "vitest-",
@@ -234,7 +234,7 @@ def agent_specs():
             elif e.name in AGENT_BACKUP_NAMES:
                 names = {c.name for c in entries(e.path)}
                 session_copy = any(
-                    n in {"sessions", "archived_sessions"} or n.startswith("codex-history-original-backup") or n.endswith(".sqlite")
+                    n in {"sessions", "archived_sessions"} or n.endswith(".sqlite")
                     for n in names
                 )
                 note = ", contains session backups" if session_copy else " (includes history backups)"

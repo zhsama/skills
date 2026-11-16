@@ -41,7 +41,7 @@ def find_repos(root, depth):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--repos-root", default=f"{HOME}/github", help="directory containing git repos (default ~/github)")
+    ap.add_argument("--repos-root", default=os.getcwd(), help="directory containing git repos (default: current directory)")
     ap.add_argument("--depth", type=int, default=3, help="how deep to look for repos (default 3)")
     ap.add_argument("--min-mib", type=int, default=50, help="fold rows smaller than this (default 50)")
     ap.add_argument("--skip-machine", action="store_true", help="only scan repositories")

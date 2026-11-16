@@ -56,7 +56,7 @@ cat <dir>/.git                                     # A file containing gitdir: i
 | Path | Contents | Tier |
 | --- | --- | --- |
 | `~/.codex/{cache,tmp,log,shell_snapshots,worktrees}` and `~/.cache/codex-runtimes` | Caches, logs, and worktrees | A for caches and logs. Check Git state for worktrees. |
-| `~/.codex/{sessions,archived_sessions,history.jsonl,*.sqlite}` and copies under `.tmp` containing `codex-history-original-backup-*`, `sessions`, `archived_sessions`, or `*.sqlite` | Session history and backups | C for active history. Classify the enclosing backup directory as B and inspect it. When `~/.codex/sessions` still exists, the backup is a separate copy. |
+| `~/.codex/{sessions,archived_sessions,history.jsonl,*.sqlite}` and copies under `.tmp` | Session history and backups | C for active history. Classify the enclosing backup directory as B regardless of its children's names and inspect it. A backup can contain history absent from the active sessions directory. |
 | `~/.claude/{cache,debug}` | Caches | A |
 | `~/.claude/projects` | Sessions | C |
 | `~/.cursor/{worktrees,projects}` | Worktrees and sessions | Check Git state for worktrees. Sessions are C. |

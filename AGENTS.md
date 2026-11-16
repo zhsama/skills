@@ -38,6 +38,24 @@ npx skills add zhsama/skills -g -a codex cursor --skill git-workflow simplified 
 
 The [CLI reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md) and [agent directory table](https://github.com/vercel-labs/skills/blob/main/docs/agents.md) describe other supported targets.
 
+## Optional personal context
+
+`disk-junk-scan` and `anime-infuse` read their matching reference from the optional
+`personal-context` skill. Personal defaults live in the private
+`zhsama/skills-private` repository and must be installed separately, in the same
+scope and for the same agents as the shared skills:
+
+```sh
+npx skills add zhsama/skills-private -g -a codex --skill personal-context
+```
+
+Only install this source when the user wants their personal defaults and has
+repository access. A Markdown reference does not make the skills CLI fetch a
+dependency, and CLI 1.9.0 skips symlinks pointing outside a skill directory.
+Keep the public skills usable without this optional source. Resolve installed
+context through the skill catalog or a sibling `personal-context` directory;
+do not hardcode an agent's installation path.
+
 ## Global instructions
 
 [rules/AGENTS.md](rules/AGENTS.md) is the file to restore. This root guide describes repository operations and must not replace the user's global preferences.
