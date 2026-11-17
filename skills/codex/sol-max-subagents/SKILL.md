@@ -1,14 +1,14 @@
 ---
 name: sol-max-subagents
-description: "Codex-only Sol Max delegation. Use in Codex when selecting workers for independent implementation or testing with a clear plan and acceptance criteria, or when the user requests Sol Max subagents. Choose what to delegate, dispatch suitable work to gpt-6.1-sol at max through Codex's subagent tools, and verify the results."
-compatibility: "Codex only. Requires Codex subagent tools supporting gpt-6.1-sol, max reasoning effort, and fork_turns: none."
+description: "Codex-only Sol Max delegation. Use in Codex when selecting workers for independent implementation or testing with a clear plan and acceptance criteria, or when the user requests Sol Max subagents. Choose what to delegate, dispatch suitable work to gpt-6.2-sol at max through Codex's subagent tools, and verify the results."
+compatibility: "Codex only. Requires Codex subagent tools supporting gpt-6.2-sol, max reasoning effort, and fork_turns: none."
 ---
 
 # Sol Max Subagents
 
 Use this skill only from Codex. Its dispatch and coordination instructions depend on Codex's subagent runtime and do not apply to Claude Code or other agents.
 
-The lead keeps its current model and owns task assignment, integration, and final verification. Workers selected for Sol use `gpt-6.1-sol` with `max` reasoning effort.
+The lead keeps its current model and owns task assignment, integration, and final verification. Workers selected for Sol use `gpt-6.2-sol` with `max` reasoning effort.
 
 ## Decide and assign
 
@@ -27,7 +27,7 @@ For work assigned to Sol, use Codex's `collaboration.spawn_agent` within the cur
 ```json
 {
   "task_name": "implement_api",
-  "model": "gpt-6.1-sol",
+  "model": "gpt-6.2-sol",
   "reasoning_effort": "max",
   "fork_turns": "none",
   "message": "Implement the approved API change in the assigned files. Follow the supplied plan and acceptance criteria, run the required checks, and report the changes and results."
