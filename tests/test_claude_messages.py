@@ -76,6 +76,31 @@ class ClaudeMessages(unittest.TestCase):
         self.assertTrue(result["messages"][1]["truncated"])
         self.assertEqual(len(result["messages"][1]["text"]), 6000)
 
+    def test_held_peer_notice_and_delivered_messages_are_distinct(self):
+        body = "Codex handoff example"
+        notice = {"type": "system", "subtype": "informational", "sessionId": "test-session",
+                  "content": f"Held peer message — preview: {body}"}
+        self.path.write_bytes(encode(notice))
+        held = READER.read_messages(self.path)
+        self.assertEqual(held["messages"], [])
+        self.assertEqual(held["held_peer_notices"][0]["session_id"], "test-session")
+        self.assertIn(body, held["held_peer_notices"][0]["text"])
+
+        with self.path.open("ab") as target:
+            for verified in (True, False):
+                target.write(encode(message("user", body, isMeta=True, origin={
+                    "kind": "peer", "verifiedLocal": verified, "msg_id": "delivery-id",
+                })))
+            target.write(encode(message("user", body, origin={"kind": "human"})))
+        following = READER.read_messages(self.path, after=held["next_offset"])
+        peer, unverified, direct = following["messages"]
+        self.assertEqual(following["held_peer_notices"], [])
+        self.assertTrue(peer["internal"])
+        self.assertEqual(peer["peer_message_id"], "delivery-id")
+        self.assertNotIn("peer_message_id", unverified)
+        self.assertNotIn("peer_message_id", direct)
+        self.assertFalse(direct["internal"])
+
     def test_rejects_stale_or_misaligned_offsets_and_invalid_complete_records(self):
         self.path.write_bytes(encode(message("user", "message")))
         for offset in [-1, 2, self.path.stat().st_size + 1]:

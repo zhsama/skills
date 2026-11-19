@@ -13,6 +13,7 @@ def read_messages(path, after=0, limit=20):
     if after < 0 or limit < 1:
         raise ValueError("after must be nonnegative and limit must be positive")
     messages = deque(maxlen=limit)
+    held_peer_notices = deque(maxlen=limit)
     total = 0
     with Path(path).open("rb") as source:
         size = source.seek(0, 2)
@@ -37,6 +38,15 @@ def read_messages(path, after=0, limit=20):
                 raise ValueError(f"Expected an object at byte {offset}")
             next_offset = source.tell()
             role = record.get("type")
+            if role == "system" and record.get("subtype") == "informational":
+                notice = record.get("content")
+                if isinstance(notice, str) and notice.startswith("Held peer message"):
+                    held_peer_notices.append({
+                        "offset": offset,
+                        "session_id": record.get("sessionId"),
+                        "text": notice[:6000],
+                    })
+                continue
             if role not in ("user", "assistant"):
                 continue
             message = record.get("message")
@@ -56,7 +66,7 @@ def read_messages(path, after=0, limit=20):
             if not text:
                 continue
             total += 1
-            messages.append({
+            item = {
                 "offset": offset,
                 "uuid": record.get("uuid"),
                 "session_id": record.get("sessionId"),
@@ -66,13 +76,20 @@ def read_messages(path, after=0, limit=20):
                 "sidechain": bool(record.get("isSidechain")),
                 "text": text[:6000],
                 "truncated": len(text) > 6000,
-            })
+            }
+            origin = record.get("origin")
+            if (role == "user" and isinstance(origin, dict)
+                    and origin.get("kind") == "peer" and origin.get("verifiedLocal") is True
+                    and isinstance(origin.get("msg_id"), str) and origin["msg_id"]):
+                item["peer_message_id"] = origin["msg_id"]
+            messages.append(item)
         identity = os.fstat(source.fileno())
     return {
         "file_id": f"{identity.st_dev}:{identity.st_ino}",
         "next_offset": next_offset,
         "omitted_messages": total - len(messages),
         "messages": list(messages),
+        "held_peer_notices": list(held_peer_notices),
     }
 
 

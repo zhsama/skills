@@ -57,6 +57,9 @@ Include what the recipient needs to act correctly:
   validation, or a specifically authorized publication step.
 - The relevant repository/worktree and commit or diff, concrete findings with
   file locations, and the evidence behind them. Separate facts from hypotheses.
+- Identify which findings violate an agreed requirement. When a suggestion
+  adds a product guarantee, explain the trade-off and leave the choice with
+  the user unless they already made it.
 - Acceptance criteria and the reply needed: agreement or disagreement with
   reasons, changes made, validation results, remaining limitations, and blockers.
 
@@ -65,20 +68,21 @@ a current prohibition on pushing, but allow a later explicit push instruction.
 
 ## Deliver once to the verified target
 
-Use an available supported messaging API when it reaches the original session.
-Otherwise use the verified terminal adapter; read
-[Ghostty delivery](references/ghostty.md) before using that path. Follow any
-app-access requirements in the environment, including the `computer-use` skill
-when applicable. Do not bypass a denied app permission through another tool.
+For a live interactive Claude session in Ghostty on macOS, use the
+[bundled AppleScript adapter](references/ghostty.md) to send directly to
+that session. Honor an explicit transport choice. On another host, use
+a supported transport that reaches the identified session. Starting a second
+Claude as a courier can leave messages waiting for approval in a peer inbox.
 
-Before pasting, establish that Claude is accepting a message and that its input
-is empty. A CLI status alone does not prove this. Do not paste into a shell,
-approval dialog, active user draft, or an unverified busy session. Wait for the
-appropriate prompt; keep preparing or checking independent evidence meanwhile.
+Confirm the target has an empty Claude prompt, save the transcript cursor,
+paste, inspect the resulting draft, then submit once. A pane title or idle
+status alone cannot establish readiness. Respect the host's app permissions.
 
-Save the transcript read position before sending. Paste and submit as separate
-operations, revalidating the target and checking the input between them. A
-successful terminal command proves only that the input operation ran.
+If an earlier peer attempt was held, check the original transcript for a
+matching receipt before trying direct input. A held notice in scrollback can
+coexist with an ordinary empty prompt. Leave an active approval dialog or
+user draft alone. A transport change does not authorize accepting a permission
+prompt or changing inbound permission settings.
 
 ## Verify receipt, response, and outcome
 
@@ -97,11 +101,13 @@ is replaced or shrinks, re-identify it and establish a fresh cursor. When output
 is omitted, increase `--limit` from the same starting offset before concluding
 that a message is absent.
 
-1. Find the unique handoff marker in a new **user** message of the expected
-   session, with neither the internal nor sidechain flag set. Check its text or
-   handoff path. An assistant echo or tool result is
-   not delivery evidence. If receipt is uncertain, inspect the prompt and new
-   records before retrying; do not blindly resend or press Enter twice.
+1. For direct input, match the marker and payload to a new, non-internal
+   **user** message in the original session's main transcript. For a requested
+   local peer delivery, match the verified `peer_message_id` and the payload
+   in a new main-transcript user record; Claude can mark it internal.
+   `held_peer_notices` explains a missing receipt. An inbox acknowledgment,
+   a held notice, or an assistant echo cannot establish receipt. Check the
+   cursor and the pane before retrying an uncertain send.
 2. For alignment or follow-through, wait for a substantive **assistant** reply
    to that handoff. Poll at a reasonable interval in waits of at most 60 seconds;
    inspect progress, tool failures, and pending user decisions when needed.
