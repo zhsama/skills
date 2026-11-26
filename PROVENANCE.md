@@ -8,7 +8,7 @@ This repository contains skills created or customized for zhsama with assistance
 
 - `codex-downgrade` is based on the detector zhsama supplied on 2026-09-08. This repository maintains its model tiers and reporting. Its original author and upstream URL were not supplied.
 
-- `claude-code-coordination` records zhsama's Codex-to-Claude Code workflow: identify the original live session, send a scoped handoff, verify receipt and reply, and inspect the resulting evidence. Discovery was checked against Claude Code 2.1.325; terminal delivery follows Ghostty's installed scripting dictionary. No private transcripts, live session identifiers, or machine-specific paths are included.
+- `agent-conversation-coordination` records how zhsama uses Codex to coordinate with another agent in its original conversation. Discovery was checked against Claude Code 2.1.325; terminal delivery follows Ghostty's installed scripting dictionary. Exact-ID resume and transcript verification were also exercised with Antigravity CLI 1.5.17. No private transcripts, live session identifiers, or machine-specific paths are included.
 
 - `disk-junk-scan` and `anime-infuse`, including their scripts and tests, are now maintained in [zhsama/skills-private](https://github.com/zhsama/skills-private). This repository retains catalog references and its existing Git history.
 

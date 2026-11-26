@@ -1,6 +1,6 @@
--- Locate a live Claude pane, or perform one separately verified input step.
+-- Locate a live agent pane, or perform one separately verified input step.
 on run argv
-  if (count of argv) < 3 then error "Expected operation, full TTY path and Claude PID"
+  if (count of argv) < 3 then error "Expected operation, full TTY path and agent PID"
   set operation to item 1 of argv
   set expectedTTY to item 2 of argv
   set expectedPID to (item 3 of argv) as integer
@@ -27,7 +27,7 @@ on run argv
         if tty of t is expectedTTY and pid of t is expectedPID then set end of matches to contents of t
       end repeat
     end repeat
-    if (count of matches) is not 1 then error "Expected one pane matching the Claude PID and TTY"
+    if (count of matches) is not 1 then error "Expected one pane matching the agent PID and TTY"
     set targetPane to item 1 of matches
     if operation is "locate" then return {id of targetPane, name of targetPane}
     if id of targetPane is not expectedID or tty of targetPane is not expectedTTY or pid of targetPane is not expectedPID then error "Terminal identity changed"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Conversation Coordination"
+  short_description: "Coordinate with another agent in its existing conversation"
+  default_prompt: "Use $agent-conversation-coordination to share these findings in the other agent’s original conversation and verify its reply."

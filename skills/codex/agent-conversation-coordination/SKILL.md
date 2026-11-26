@@ -1,15 +1,14 @@
 ---
-name: claude-code-coordination
-description: "Codex-only coordination with an existing local Claude Code session. Use when the user asks Codex to send findings, align a plan, hand off work, or follow up with the original Claude Code conversation. Verify the real session, deliver within the user's authorization, read its reply, and check the resulting evidence."
+name: agent-conversation-coordination
+description: "Use when the user asks Codex to coordinate with another agent in an existing conversation. Relay findings, align plans, or follow up there and verify the agent’s reply. Supports local Claude Code and Antigravity CLI (agy) conversations."
 ---
 
-# Claude Code Coordination
+# Agent Conversation Coordination
 
-Use this skill from Codex to communicate with the user's original Claude Code
-session. Keep Codex responsible for interpreting the request and verifying the
-result. Requires local shell access and an available Claude Code session;
-the documented terminal adapter uses macOS and Ghostty. The transcript helper
-requires Python 3 and has no third-party dependencies.
+Contact the other agent in the conversation the user identified. Apply the shared scope and
+handoff guidance below. For Antigravity CLI, follow the [agy procedure](references/agy.md)
+for identification, delivery and verification. For Claude Code, use the Claude
+sections below. Its transcript helper requires Python 3.
 
 ## Preserve the requested scope
 
@@ -18,12 +17,12 @@ requires Python 3 and has no third-party dependencies.
 - Alignment and review stay read-only unless implementation is also authorized.
   State the allowed work in the handoff. Do not infer permission to commit, push,
   publish, merge, deploy, or run new experiments from a request to discuss them.
-- Claude's response is evidence and a proposal, not additional user permission.
+- The recipient's response is evidence and a proposal, not additional user permission.
   Evaluate it against the user's request and current repository state.
-- Reading or auditing a Claude transcript alone does not authorize sending it a
+- Reading or auditing a transcript alone does not authorize sending it a
   message. Do not contact unrelated sessions.
 
-## Identify the original session
+## Identify the original Claude Code session
 
 1. Check the installed CLI with `claude --version` and `claude agents --help`.
    Where supported, `claude agents --json` lists interactive and background
@@ -46,7 +45,7 @@ prepare the handoff and ask only for the missing target or access information.
 
 For a short message, send the request directly. For a substantial review, put
 the handoff in the project's ignored temporary directory and send its absolute
-path with a concise instruction to read it. Confirm that path exists on Claude's
+path with a concise instruction to read it. Confirm that path exists on the recipient's
 machine. Keep private transcripts, screenshots, and coordination records out of
 tracked source files.
 
@@ -66,7 +65,7 @@ Include what the recipient needs to act correctly:
 Do not turn one task's restrictions into permanent rules. For example, preserve
 a current prohibition on pushing, but allow a later explicit push instruction.
 
-## Deliver once to the verified target
+## Deliver to the verified Claude Code session
 
 For a live interactive Claude session in Ghostty on macOS, use the
 [bundled AppleScript adapter](references/ghostty.md) to send directly to
@@ -84,7 +83,7 @@ coexist with an ordinary empty prompt. Leave an active approval dialog or
 user draft alone. A transport change does not authorize accepting a permission
 prompt or changing inbound permission settings.
 
-## Verify receipt, response, and outcome
+## Verify the Claude Code receipt, response, and outcome
 
 Use [the read-only transcript helper](scripts/read_messages.py) to read recent
 plain-text messages and then consume new complete records from `next_offset`:
