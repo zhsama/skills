@@ -19,6 +19,21 @@ transcript="$HOME/.gemini/antigravity-cli/brain/$conversation_id/.system_generat
 
 ## Send once
 
+If the target has no open window, resolve its UUID from the evidence above
+and check for a live owner across terminals and background processes. Once
+the conversation is free, resume it headlessly by default from its verified
+workspace without asking the user to open a window or confirm the transport. Pass the exact UUID and a quoted prompt containing the fresh marker.
+For example, for a read-only discussion:
+
+```sh
+agy --conversation "$conversation_id" --mode plan --output-format json \
+  --print "$handoff"
+```
+
+Use a permission mode appropriate to the authorized task. Avoid `--continue`
+for addressed handoffs because the latest conversation can change. A headless
+resume starts a new process. Reserve it for a conversation known to be free.
+
 For a live CLI, use its existing terminal. Match its current conversation and
 workspace to the transcript, and verify the foreground agy PID and TTY.
 The original launch arguments can be stale after an in-session switch.
@@ -45,19 +60,6 @@ tmux -S "$socket" capture-pane -p -J -t "$pane"
 tmux -S "$socket" send-keys -t "$pane" Enter
 ```
 
-For a conversation whose interactive owner has exited, run from its verified
-workspace. Pass the exact UUID and a quoted prompt containing the fresh marker.
-For example, for a read-only discussion:
-
-```sh
-agy --conversation "$conversation_id" --mode plan --output-format json \
-  --print "$handoff"
-```
-
-Use a permission mode appropriate to the authorized task. Avoid `--continue`
-for addressed handoffs because the latest conversation can change. A headless
-resume starts a new process. Reserve it for a conversation known to be free.
-
 ## Verify the turn
 
 Read complete records in step order from the original transcript after the
@@ -80,7 +82,9 @@ prefix it with `/plan`). Follow that turn to its substantive model answer
 before the next user turn. For headless delivery also check exit status,
 `status == "SUCCESS"`, exact `conversation_id`, and agreement between the
 JSON `response` and transcript answer after trimming surrounding whitespace.
-For live delivery confirm the turn has finished in the pane. Inspect claimed
+For live delivery confirm the turn has finished in the pane. If the user also
+asked to test a specific terminal, report which transport actually delivered
+the message. Inspect claimed
 changes or tests independently. After a timeout, missing record or ambiguous
 result, inspect the original turn before deciding whether a retry is needed.
 Report receipt, reply and independently verified work separately.
