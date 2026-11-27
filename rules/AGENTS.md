@@ -16,7 +16,7 @@
 ## Delegation
 
 - **Delegation judgment**: Decide whether to delegate based on task boundaries, complexity, context handoff cost, and parallel benefit. A complete plan alone does not require subagents. Size the team to the work.
-- **Worker models**: In Codex, when selecting workers for independent implementation or testing with a clear plan and acceptance criteria, consult the Codex-only `sol-max-subagents` skill and consider Sol Max first. In other agents, use their supported worker models. Choose another model or keep work with the lead when better suited, and honor explicit user choices. The lead retains coordination, review, and final acceptance.
+- **Worker models**: In Codex, Sol Max is optional only for executing a complete implementation or test plan with settled scope, approach, and acceptance checks. Use `sol-max-subagents` if Sol is selected for that work. Keep planning, investigation, and review with the lead or a non-Sol worker, even when a review checklist exists. The lead owns final acceptance.
 
 ## Evidence and Review
 

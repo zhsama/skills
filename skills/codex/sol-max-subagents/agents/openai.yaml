@@ -1,4 +1,4 @@
 interface:
   display_name: "Sol Max Subagents"
-  short_description: "Codex-only Sol Max delegation and verification"
-  default_prompt: "Use $sol-max-subagents in Codex to assess which tasks benefit from delegation, choose suitable workers and their count, and coordinate and verify the results."
+  short_description: "Execute a complete implementation or test plan with Sol Max"
+  default_prompt: "Use $sol-max-subagents to carry out the implementation or test plan once its scope, approach, and acceptance checks are settled."

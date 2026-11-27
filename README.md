@@ -13,7 +13,7 @@ My agent skills and coding preferences. Codex-only workflows are marked below.
 | [node-modules-inspector](skills/shared/node-modules-inspector/SKILL.md) | Cross-agent | Inspect dependency duplicates, sizes, and maintenance opportunities. |
 | [codex-downgrade](skills/codex/codex-downgrade/SKILL.md) | Codex only | Audit the serving model using local Codex sessions and routing evidence. |
 | [agent-conversation-coordination](skills/codex/agent-conversation-coordination/SKILL.md) | Codex only | Coordinate with another agent in its existing conversation and verify its reply. Supports Claude Code and agy. |
-| [sol-max-subagents](skills/codex/sol-max-subagents/SKILL.md) | Codex only | Dispatch and coordinate Sol Max workers through Codex's subagent tools. |
+| [sol-max-subagents](skills/codex/sol-max-subagents/SKILL.md) | Codex only | Execute a complete implementation or test plan with a Sol Max worker. |
 
 Cross-agent skills still require the tools and platform described in each skill.
 Sources live in `skills/shared/` and `skills/codex/`; skill names and invocation
